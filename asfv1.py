@@ -84,7 +84,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375

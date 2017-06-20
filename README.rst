@@ -1,4 +1,6 @@
-# asfv1
+asfv1
+=====
+
 Alternate Assembler for Spin Semi FV-1
 
 Copyright (C) 2017 Nathan Fraser
@@ -9,14 +11,17 @@ the Spin FV-1 assembler in standard Python, for developers
 who are unable or unwilling to use the Spin provided IDE.
 
 REQUIREMENTS:
+-------------
 
-  - Python 3
+  - Python >= 3
 
 INSTALLATION:
+-------------
 
-  - pip install asfv1
+  - pip3 install asfv1
 
 OVERVIEW:
+---------
 
 asfv1 is based on information in the FV-1 datasheet and AN0001
 "Basics of the LFOs in the FV-1". It assembles a DSP program
@@ -49,12 +54,17 @@ There are some minor quirks:
  - Real numbers differ very slightly from those in the
    datasheet. Specifically:
 
-        Max S.23 0x7fffff = 0.9999998807907104
-        Max S.15   0x7fff = 0.999969482421875
-        Max S1.14  0x7fff = 1.99993896484375
-        Max S.10    0x3ff = 0.9990234375
-        Max S1.9    0x3ff = 1.998046875
-        Max S4.6    0x3ff = 15.984375
+        - Max S.23 0x7fffff = 0.9999998807907104
+
+        - Max S.15   0x7fff = 0.999969482421875
+
+        - Max S1.14  0x7fff = 1.99993896484375
+
+        - Max S.10    0x3ff = 0.9990234375
+
+        - Max S1.9    0x3ff = 1.998046875
+
+        - Max S4.6    0x3ff = 15.984375
 
  - Input is assumed to be utf-8 text.
 
@@ -67,6 +77,8 @@ There are some minor quirks:
 For more information on the FV-1, refer to the Spin website:
 
  Web Site: http://spinsemi.com/products.html
+
  Datasheet: http://spinsemi.com/Products/datasheets/spn1001/FV-1.pdf
+
  AN0001: http://spinsemi.com/Products/appnotes/spn1001/AN-0001.pdf
 
