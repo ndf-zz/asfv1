@@ -5,6 +5,7 @@ setup(
     version='1.0.0',
     description='Alternate FV-1 Assembler',
     py_modules=['asfv1',],
+    url='https://github.com/ndf-zz/asfv1',
     license='GPL',
     author='Nathan Fraser',
     author_email='ndf@metarace.com.au',
@@ -19,6 +20,5 @@ setup(
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Software Development :: Assemblers',
     ],
-    long_description=open('README.txt').read(),
 )
 
