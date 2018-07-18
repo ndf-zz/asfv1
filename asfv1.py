@@ -84,7 +84,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -118,6 +118,7 @@ M14 = 0x3fff
 M15 = 0x7fff
 M16 = 0xffff
 M24 = 0xffffff
+M27 = 0x7ffffff
 
 def quiet(msg):
     pass
@@ -197,8 +198,10 @@ op_tbl = {
         'CHO':  [0b10100, (M2,30),(M2,21),(M6,24),(M16,5)], # CHECK
 	'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
 	'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
+	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0
 	'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
 	'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
+        'RAW':  [0b11111, (M27,5)],         # marking instruction
 	# Notes:
 	# 1. In SpinASM IDE , condition flags expand to shifted values,
 }
@@ -490,6 +493,26 @@ class fv1parse(object):
                     self.parseerror('Invalid S.15 arg ' + repr(arg),
                                     self.prevline)
             arg = int(arg * SZ_S_15)
+        return arg
+
+    def __u_27__(self):
+        """Fetch a raw 27 bit data string."""
+        arg = self.__expression__()
+        if type(arg) is int:
+            if arg < 0 or arg > M27:
+                if self.doclamp:
+                    if arg < 0:
+                        arg = 0
+                    elif arg > M27:
+                        arg = M27
+                    self.parsewarn('U.27 arg clamped to ' + hex(arg),
+                                   self.prevline)
+                else:
+                    self.parseerror('Invalid U.27 arg ' + hex(arg),
+                                    self.prevline)
+        else:
+            self.parseerror('Invalid U.27 arg ' + hex(arg),
+                            self.prevline)
         return arg
 
     def __s_23__(self):
@@ -894,6 +917,10 @@ class fv1parse(object):
             # pseudo command XOR
             self.pl.append({'cmd':['XOR', 0xffffff],'addr':self.icnt})
             self.icnt += 1
+        elif mnemonic == 'NOP':
+            # pseudo command SKP 0,0
+            self.pl.append({'cmd':['NOP', 0x0],'addr':self.icnt})
+            self.icnt += 1
         elif mnemonic == 'ABSA':
             # pseudo command MAXX $0,$0
             self.pl.append({'cmd':['MAXX', 0x0, 0x0],'addr':self.icnt})
@@ -902,6 +929,11 @@ class fv1parse(object):
             # pseudo command RDFX REG,$0
             reg = self.__register__()
             self.pl.append({'cmd':['RDFX', reg, 0x0],'addr':self.icnt})
+            self.icnt += 1
+        elif mnemonic == 'RAW':
+            # marking instruction
+            mark = self.__u_27__()
+            self.pl.append({'cmd':['RAW', mark],'addr':self.icnt})
             self.icnt += 1
         else:
             self.parseerror('Unexpected instruction {}'.format(
