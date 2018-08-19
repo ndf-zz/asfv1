@@ -63,9 +63,6 @@
 # board using the Cypress USB connection, please see the
 # related project fv1prog.
 #
-# Changes:
-# 2017-06-21: 1.0.0 initial release
-#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -84,7 +81,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -309,6 +306,8 @@ class fv1parse(object):
     def __mkopcodes__(self):
         """Convert the parse list into machine code for output."""
         proglen = len(self.pl)
+        self.dowarn('info: Read {} instructions from input'.format(
+                proglen))
 
         # pad free space with empty SKP instructions
         icnt = proglen
@@ -717,6 +716,7 @@ class fv1parse(object):
                                 'txt': self.linebuf.pop(0),
                                 'val': 0x0}
                 elif self.linebuf[0][0] in ['%', '$']:
+                    # Spin style integers
                     pref = self.linebuf.pop(0)
                     base = baseprefix[pref]
                     if len(self.linebuf) > 0:
@@ -748,8 +748,13 @@ class fv1parse(object):
                         else:
                             self.scanerror('End of line scanning numeric')
                     else:	# assume base 10 integer
+                        base = 10
+                        if intpart.startswith('0X'):
+                            base = 16
+                        elif intpart.startswith('0B'):
+                            base = 2
                         try:
-                            ival = int(intpart,10)
+                            ival = int(intpart, base)
                             self.sym = {'type': 'INTEGER',
                                         'txt': intpart,
                                         'val': ival}
