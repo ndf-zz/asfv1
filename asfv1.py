@@ -81,7 +81,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -195,14 +195,14 @@ op_tbl = {
         'CHO':  [0b10100, (M2,30),(M2,21),(M6,24),(M16,5)], # CHECK
 	'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
 	'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
-	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0
+	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
 	'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
 	'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
         'RAW':  [0b11111, (M27,5)],         # marking instruction
 	# Notes:
 	# 1. In SpinASM IDE , condition flags expand to shifted values,
+        # 2. NOP is not documented, but expands to SKP 0,0 in SpinASM
 }
-baseprefix = {'%':2, '$':16}
 
 def op_gen(mcode):
     """Generate a machine instruction using the op gen table."""
@@ -325,7 +325,7 @@ class fv1parse(object):
                 if skplen > 63:
                     skplen = 63
                 # replace skp at icnt
-                self.pl[icnt]={'cmd':['SKP',0b11,skplen],
+                self.pl[icnt]={'cmd':['SKP',0x00,skplen],
                                'addr':icnt,
                                'target':None}
                 icnt += skplen + 1
@@ -716,9 +716,11 @@ class fv1parse(object):
                                 'txt': self.linebuf.pop(0),
                                 'val': 0x0}
                 elif self.linebuf[0][0] in ['%', '$']:
-                    # Spin style integers
+                    # SpinASM style integers
                     pref = self.linebuf.pop(0)
-                    base = baseprefix[pref]
+                    base = 2
+                    if pref == '$':
+                        base = 16
                     if len(self.linebuf) > 0:
                         ht = self.linebuf.pop(0)
                         try:
@@ -747,7 +749,7 @@ class fv1parse(object):
                                         + repr(intpart+'.'+frac))
                         else:
                             self.scanerror('End of line scanning numeric')
-                    else:	# assume base 10 integer
+                    else:	# assume integer
                         base = 10
                         if intpart.startswith('0X'):
                             base = 16
