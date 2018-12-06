@@ -4,7 +4,7 @@ if sys.version_info < (3,0):
     sys.exit('Python >= 3.0 required.')
 setup(
     name='asfv1',
-    version='1.0.4',
+    version='1.0.5',
     description='Alternate FV-1 Assembler',
     py_modules=['asfv1',],
     url='https://github.com/ndf-zz/asfv1',

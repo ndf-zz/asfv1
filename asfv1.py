@@ -81,7 +81,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -677,7 +677,7 @@ class fv1parse(object):
     def __lfo_rampamp__(self):
         """Fetch a ramp LFO amplitude value."""
         amp = self.__expression__()
-        rampamps = {4096:0, 2048:1, 1024:2, 512:3}
+        rampamps = {4096:0, 2048:1, 1024:2, 512:3, 0:0, 1:1, 2:2, 3:3}
         if type(amp) is int:
             if amp in rampamps:
                 amp = rampamps[amp]
