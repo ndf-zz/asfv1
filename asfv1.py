@@ -81,7 +81,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.5'
+VERSION = '1.0.6'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -116,6 +116,7 @@ M15 = 0x7fff
 M16 = 0xffff
 M24 = 0xffffff
 M27 = 0x7ffffff
+M32 = 0xffffffff
 
 def quiet(msg):
     pass
@@ -198,7 +199,7 @@ op_tbl = {
 	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
 	'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
 	'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
-        'RAW':  [0b11111, (M27,5)],         # marking instruction
+        'RAW':  [0b00000, (M32,0)],         # direct data insertion
 	# Notes:
 	# 1. In SpinASM IDE , condition flags expand to shifted values,
         # 2. NOP is not documented, but expands to SKP 0,0 in SpinASM
@@ -511,6 +512,26 @@ class fv1parse(object):
                                     self.prevline)
         else:
             self.parseerror('Invalid U.27 arg ' + hex(arg),
+                            self.prevline)
+        return arg
+
+    def __u_32__(self):
+        """Fetch a raw 32 bit data string."""
+        arg = self.__expression__()
+        if type(arg) is int:
+            if arg < 0 or arg > M32:
+                if self.doclamp:
+                    if arg < 0:
+                        arg = 0
+                    elif arg > M32:
+                        arg = M32
+                    self.parsewarn('U.32 arg clamped to ' + hex(arg),
+                                   self.prevline)
+                else:
+                    self.parseerror('Invalid U.32 arg ' + hex(arg),
+                                    self.prevline)
+        else:
+            self.parseerror('Invalid U.32 arg ' + hex(arg),
                             self.prevline)
         return arg
 
@@ -938,8 +959,8 @@ class fv1parse(object):
             self.pl.append({'cmd':['RDFX', reg, 0x0],'addr':self.icnt})
             self.icnt += 1
         elif mnemonic == 'RAW':
-            # marking instruction
-            mark = self.__u_27__()
+            # direct data insertion
+            mark = self.__u_32__()
             self.pl.append({'cmd':['RAW', mark],'addr':self.icnt})
             self.icnt += 1
         else:
