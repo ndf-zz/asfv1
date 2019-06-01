@@ -30,10 +30,12 @@
 #
 #  - Signed fixed point arguments (S1.14, S1.9, S.10) may be
 #    entered using an unsigned integer equivalent value. This 
-#    causes a conflict with SpinASM, when entries like -1 and 1
+#    causes a conflict with SpinASM, where literals -2, -1 and 1
 #    are interpreted differently depending on how they are used.
 #    In asfv1, all operands are treated alike, so to specify
 #    a real number, the decimal part is compulsory: Eg -1.0, 1.0.
+#
+#    To allow Spin style integer real literals use hack option -s
 #
 #  - Real numbers differ very slightly from those in the
 #    datasheet. Specifically:
@@ -81,7 +83,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.6'
+VERSION = '1.0.7'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -218,10 +220,12 @@ def op_gen(mcode):
     return ret
 
 class fv1parse(object):
-    def __init__(self, source=None, clamp=True, skip=False, wfunc=None):
+    def __init__(self, source=None, clamp=True, skip=False,
+                 spinreals=False, wfunc=None):
         self.program = bytearray(512)
         self.doclamp = clamp
         self.doskip = skip
+        self.spinreals = spinreals
         self.dowarn = wfunc
         self.delaymem = 0
         self.prevline = 0
@@ -770,6 +774,16 @@ class fv1parse(object):
                                         + repr(intpart+'.'+frac))
                         else:
                             self.scanerror('End of line scanning numeric')
+                    elif self.spinreals and intpart in ['2', '1']:
+                        try:
+                            ival = float(intpart)
+                            self.sym = {'type': 'FLOAT',
+                                        'txt': intpart+'.0',
+                                        'val': ival}
+                            print('converted spin literal to float: ' + repr(self.sym))
+                        except:
+                            self.scanerror('Invalid Spin real literal '
+                                        + repr(intpart))
                     else:	# assume integer
                         base = 10
                         if intpart.startswith('0X'):
@@ -1196,6 +1210,9 @@ def main():
     parser.add_argument('-n', '--noskip',
                         action='store_false',
                         help="don't skip unused instruction space")
+    parser.add_argument('-s', '--spinreals',
+                        action='store_true',
+                        help="read literals 2 and 1 as 2.0 and 1.0")
     parser.add_argument('-p',
                         help='target program number (hex output)',
                         type=int, choices=range(0,8))
@@ -1223,7 +1240,8 @@ def main():
         encoding = 'utf-16le'
 
     fp = fv1parse(inbuf.decode(encoding,'replace').upper(),
-                  clamp=args.clamp, skip=args.noskip, wfunc=dowarn)
+                  clamp=args.clamp, skip=args.noskip,
+                  spinreals=args.spinreals, wfunc=dowarn)
     fp.parse()
     
     ofile = None

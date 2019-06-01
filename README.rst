@@ -33,8 +33,7 @@ There are some minor quirks:
    entered using an unsigned integer equivalent value. This 
    causes a conflict with SpinASM, when entries like -1 and 1
    are interpreted differently depending on how they are used.
-   In asfv1, all operands are treated alike, so to specify
-   a real number, the decimal part is compulsory: Eg -1.0, 1.0.
+   For Spin-like behaviour use option -s (--spinreals).
 
  - By default, immediate values that would overflow available
    argument sizes will generate an error and abort assembly.
@@ -58,6 +57,10 @@ There are some minor quirks:
         - Max S1.9    0x3ff = 1.998046875
 
         - Max S4.6    0x3ff = 15.984375
+
+ - Raw data can be inserted into the program using the RAW
+   instruction. RAW takes a 32bit integer operand and places
+   it in the output without change.
 
  - This assembler builds a single DSP program from a single
    source file, and always outputs exactly 128 instructions.
