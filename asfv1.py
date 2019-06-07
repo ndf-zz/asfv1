@@ -83,7 +83,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.7'
+VERSION = '1.0.8'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -357,6 +357,10 @@ class fv1parse(object):
     def __offset__(self):
         """Fetch a skip offset definition."""
         oft = self.__expression__()
+        if self.spinreals and type(oft) is float:
+            oft = int(oft)
+            self.parsewarn('Converted skip offset to integer: ' + repr(oft),
+                           self.prevline)
         if type(oft) is not int or oft < 0 or oft > M6:
             self.parseerror('Invalid skip offset ' + repr(oft),
                             self.prevline)
@@ -780,7 +784,6 @@ class fv1parse(object):
                             self.sym = {'type': 'FLOAT',
                                         'txt': intpart+'.0',
                                         'val': ival}
-                            print('converted spin literal to float: ' + repr(self.sym))
                         except:
                             self.scanerror('Invalid Spin real literal '
                                         + repr(intpart))
