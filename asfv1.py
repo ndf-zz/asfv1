@@ -61,10 +61,6 @@
 #  Datasheet: http://spinsemi.com/Products/datasheets/spn1001/FV-1.pdf
 #  AN0001: http://spinsemi.com/Products/appnotes/spn1001/AN-0001.pdf
 #
-# To upload assembled DSP programs to the FV-1 development
-# board using the Cypress USB connection, please see the
-# related project fv1prog.
-#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -83,7 +79,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.8'
+VERSION = '1.0.9'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375

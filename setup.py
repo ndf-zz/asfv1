@@ -1,14 +1,12 @@
 import setuptools
-import sys
-if sys.version_info < (3,0):
-    sys.exit('Python >= 3.0 required.')
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
+    python_requires='>=3',
     name="asfv1",
-    version="1.0.8",
+    version="1.0.9",
     author="Nathan Fraser",
     author_email="ndf@metarace.com.au",
     description="Alternate FV-1 Assembler",
@@ -27,5 +25,6 @@ setuptools.setup(
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Software Development :: Assemblers',
     ],
+    py_modules=['asfv1',],
 )
 
