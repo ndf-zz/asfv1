@@ -79,7 +79,7 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.0.9'
+VERSION = '1.0.10'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAX_S1_14 = 1.99993896484375
@@ -139,18 +139,18 @@ def bintoihex(buf, spos=0x0000):
     c = 0
     olen = len(buf)
     ret = ""
-    # 16 byte lines
-    while (c+0x10) <= olen:
+    # 4 byte lines - Spin IDE requires 4 byte lines
+    while (c+0x04) <= olen:
         adr = c + spos
-        l = ':10{0:04X}00'.format(adr)
-        sum = 0x10+((adr>>8)&M8)+(adr&M8)
-        for j in range(0,0x10):
+        l = ':04{0:04X}00'.format(adr)
+        sum = 0x04+((adr>>8)&M8)+(adr&M8)
+        for j in range(0,0x04):
             nb = buf[c+j]
             l += '{0:02X}'.format(nb)
             sum = (sum + nb)&M8
         l += '{0:02X}'.format((~sum+1)&M8)
         ret += l + '\n'
-        c += 0x10
+        c += 0x04
     # remainder
     if c < olen:
         rem = olen-c
