@@ -1203,6 +1203,10 @@ def main():
     parser.add_argument('-q', '--quiet',
                         action='store_true',
                         help='suppress warnings')
+    parser.add_argument('-v', '--version',
+                        action='version',
+                        help='print version',
+                        version='%(prog)s ' + VERSION)
     parser.add_argument('-c', '--clamp',
                         action='store_true',
                         help='clamp out of range values without error')
