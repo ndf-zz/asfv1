@@ -79,27 +79,40 @@ import sys
 import shlex
 
 # Constants
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 PROGLEN = 128
 DELAYSIZE = 32767
-MAX_S1_14 = 1.99993896484375
-MIN_S1_14 = -2.0
-SZ_S1_14 = 16384.0
-MAX_S1_9 = 1.998046875
-MIN_S1_9 = -2.0
-SZ_S1_9 = 512.0
-MAX_S_10 = 0.9990234375
-MIN_S_10 = -1.0
-SZ_S_10 = 1024.0
-MAX_S_15 = 0.999969482421875
-MIN_S_15 = -1.0
-SZ_S_15 = 32768.0
-MAX_S4_6 = 15.984375
-MIN_S4_6 = -16.0
-SZ_S4_6 = 64.0
-MAX_S_23 = 0.9999998807907104
-MIN_S_23 = -1.0
-SZ_S_23 = 8388608.0
+
+# Fixed point reals SN.D with one sign bit (S),
+# N integer bits and D fractional bits:
+#
+#	REF_... reference value at +1.0: 2**D
+#	MIN_... smallest real number: -2**(N+D)/2**D == -2**N
+#	MAX_... largest real number: (2**(N+D)-1)/REF
+#
+REF_S1_14 = 2.0**14			# 16384.0
+MIN_S1_14 = -2.0**1			# -2.0
+MAX_S1_14 = (2.0**(1+14)-1.0)/REF_S1_14	# 1.99993896484375
+
+REF_S1_9 = 2.0**9			# 512.0
+MIN_S1_9 = -2.0**1			# -2.0
+MAX_S1_9 = (2.0**(1+9)-1.0)/REF_S1_9	# 1.998046875
+
+REF_S_10 = 2.0**10			# 1024.0
+MIN_S_10 = -2.0**0			# -1.0
+MAX_S_10 = (2.0**(0+10)-1.0)/REF_S_10	# 0.9990234375
+
+REF_S_15 = 2.0**15			# 32768.0
+MIN_S_15 = -2.0**0			# -1.0
+MAX_S_15 = (2.0**(0+15)-1.0)/REF_S_15	# 0.999969482421875
+
+REF_S4_6 = 2.0**6			# 64.0
+MIN_S4_6 = -2.0**4			# -16.0
+MAX_S4_6 = (2.0**(4+6)-1.0)/REF_S4_6	# 15.984375
+
+REF_S_23 = 2.0**23			# 8388608.0
+MIN_S_23 = -2.0**0			# -1.0
+MAX_S_23 = (2.0**(0+23)-1.0)/REF_S_23	# 0.9999998807907104
 
 # Bit Masks
 M1 = 0x01
@@ -170,33 +183,33 @@ def bintoihex(buf, spos=0x0000):
 # Machine instruction table
 op_tbl = {
 	# mnemonic: [opcode, (arglen,left shift), ...]
-	'SOF':  [0b01101, (M16,16),(M11,5)],
-        'AND':  [0b01110, (M24,8)],
-        'OR' :  [0b01111, (M24,8)],
-        'XOR':  [0b10000, (M24,8)],
-        'LOG':  [0b01011, (M16,16),(M11,5)],
-	'EXP':  [0b01100, (M16,16),(M11,5)],
-	'SKP':  [0b10001, (M5,27),(M6,21)],	# note 1
-	'RDAX': [0b00100, (M6,5),(M16,16)],
-        'WRAX': [0b00110, (M6,5),(M16,16)],
-        'MAXX': [0b01001, (M6,5),(M16,16)],
-        'MULX': [0b01010, (M6,5)],
-        'RDFX': [0b00101, (M6,5),(M16,16)],
-        'WRLX': [0b01000, (M6,5),(M16,16)],
-        'WRHX': [0b00111, (M6,5),(M16,16)],
         'RDA':  [0b00000, (M15,5),(M11,21)],
         'RMPA': [0b00001, (M11,21)],
         'WRA':  [0b00010, (M15,5),(M11,21)],
         'WRAP': [0b00011, (M15,5),(M11,21)],
+	'RDAX': [0b00100, (M6,5),(M16,16)],
+        'RDFX': [0b00101, (M6,5),(M16,16)],
+	'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
+        'WRAX': [0b00110, (M6,5),(M16,16)],
+        'WRHX': [0b00111, (M6,5),(M16,16)],
+        'WRLX': [0b01000, (M6,5),(M16,16)],
+        'MAXX': [0b01001, (M6,5),(M16,16)],
+	'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
+        'MULX': [0b01010, (M6,5)],
+        'LOG':  [0b01011, (M16,16),(M11,5)],
+	'EXP':  [0b01100, (M16,16),(M11,5)],
+	'SOF':  [0b01101, (M16,16),(M11,5)],
+        'AND':  [0b01110, (M24,8)],
+	'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
+        'OR' :  [0b01111, (M24,8)],
+        'XOR':  [0b10000, (M24,8)],
+	'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
+	'SKP':  [0b10001, (M5,27),(M6,21)],	# note 1
+	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
         'WLDS': [0b10010, (M1,29),(M9,20),(M15,5)],
         'WLDR': [0b10010, (M2,29),(M16,13),(M2,5)], # CHECK
         'JAM':  [0b10011, (M2,6)],
         'CHO':  [0b10100, (M2,30),(M2,21),(M6,24),(M16,5)], # CHECK
-	'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
-	'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
-	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
-	'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
-	'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
         'RAW':  [0b00000, (M32,0)],         # direct data insertion
 	# Notes:
 	# 1. In SpinASM IDE , condition flags expand to shifted values,
@@ -436,7 +449,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid S1.14 arg ' + repr(arg),
                                     self.prevline)
-            arg = int(arg * SZ_S1_14)
+            arg = int(round(arg * REF_S1_14))
         return arg
 
     def __s_10__(self):
@@ -466,7 +479,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid S.10 arg ' + repr(arg),
                                     self.prevline)
-            arg = int(arg * SZ_S_10)
+            arg = int(round(arg * REF_S_10))
         return arg
 
     def __s_15__(self):
@@ -496,27 +509,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid S.15 arg ' + repr(arg),
                                     self.prevline)
-            arg = int(arg * SZ_S_15)
-        return arg
-
-    def __u_27__(self):
-        """Fetch a raw 27 bit data string."""
-        arg = self.__expression__()
-        if type(arg) is int:
-            if arg < 0 or arg > M27:
-                if self.doclamp:
-                    if arg < 0:
-                        arg = 0
-                    elif arg > M27:
-                        arg = M27
-                    self.parsewarn('U.27 arg clamped to ' + hex(arg),
-                                   self.prevline)
-                else:
-                    self.parseerror('Invalid U.27 arg ' + hex(arg),
-                                    self.prevline)
-        else:
-            self.parseerror('Invalid U.27 arg ' + hex(arg),
-                            self.prevline)
+            arg = int(round(arg * REF_S_15))
         return arg
 
     def __u_32__(self):
@@ -566,7 +559,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid S.23 arg ' + repr(arg),
                                     self.prevline)
-            arg = int(arg * SZ_S_23)
+            arg = int(round(arg * REF_S_23))
         return arg
 
     def __s1_9__(self):
@@ -596,7 +589,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid S1.9 arg ' + repr(arg),
                                     self.prevline)
-            arg = int(arg * SZ_S1_9)
+            arg = int(round(arg * REF_S1_9))
         return arg
 
     def __s4_6__(self):
@@ -626,7 +619,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid S4.6 arg ' + repr(arg),
                                     self.prevline)
-            arg = int(arg * SZ_S4_6)
+            arg = int(round(arg * REF_S4_6))
         return arg
 
     def __lfo__(self):
@@ -1192,10 +1185,8 @@ def main():
     parser = argparse.ArgumentParser(
                 description='Assemble a single FV-1 DSP program.')
     parser.add_argument('infile',
-                        nargs='?',
                         type=argparse.FileType('r'),
-                        help='program source file',
-                        default=sys.stdin) 
+                        help='program source file')
     parser.add_argument('outfile',
                         nargs='?',
                         help='assembled output file',
@@ -1271,5 +1262,6 @@ def main():
         dowarn('info: Writing hex output to ' + ofile.name)
         ofile.write(bintoihex(fp.program, baseoft).encode('ASCII','ignore'))
     ofile.close()
+
 if __name__ == '__main__':
     main()

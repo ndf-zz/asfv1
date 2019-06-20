@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     python_requires='>=3',
     name="asfv1",
-    version="1.1.0",
+    version="1.1.1",
     author="Nathan Fraser",
     author_email="ndf@metarace.com.au",
     description="Alternate FV-1 Assembler",
