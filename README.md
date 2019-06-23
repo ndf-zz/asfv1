@@ -43,16 +43,6 @@ There are some minor quirks:
 - Unlike the Spin assembler, non-sensical but othwerwise valid
   arguments are assembled without error.
 
-- Real numbers differ very slightly from those in the datasheet.
-  Specifically:
-
-  > * Max S.23 0x7fffff = 0.9999998807907104
-  > * Max S.15 0x7fff = 0.999969482421875
-  > * Max S1.14 0x7fff = 1.99993896484375
-  > * Max S.10 0x3ff = 0.9990234375
-  > * Max S1.9 0x3ff = 1.998046875
-  > * Max S4.6 0x3ff = 15.984375
-
 - Raw data can be inserted into the program using the RAW
   instruction. RAW takes a 32bit integer operand and places it in
   the output without change.
