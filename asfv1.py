@@ -77,6 +77,7 @@
 import argparse
 import sys
 import shlex
+import struct
 
 # Constants
 VERSION = '1.1.1'
@@ -138,35 +139,15 @@ def warning(msg):
 def error(msg):
     print(msg, file=sys.stderr)
 
-def tob32(val):
-    """Return provided 32 bit value as a string of four bytes."""
-    ret = bytearray(4)
-    ret[0] = (val>>24)&M8
-    ret[1] = (val>>16)&M8
-    ret[2] = (val>>8)&M8
-    ret[3] = val&M8
-    return ret
-
-def bintoihex(buf, spos=0x0000):
+def bintoihex(buf, spos=0x0000, width=4):
     """Convert binary buffer to ihex and return as string."""
     c = 0
     olen = len(buf)
     ret = ""
-    # 4 byte lines - Spin IDE requires 4 byte lines
-    while (c+0x04) <= olen:
-        adr = c + spos
-        l = ':04{0:04X}00'.format(adr)
-        sum = 0x04+((adr>>8)&M8)+(adr&M8)
-        for j in range(0,0x04):
-            nb = buf[c+j]
-            l += '{0:02X}'.format(nb)
-            sum = (sum + nb)&M8
-        l += '{0:02X}'.format((~sum+1)&M8)
-        ret += l + '\n'
-        c += 0x04
-    # remainder
-    if c < olen:
+    while(c < olen):
         rem = olen-c
+        if rem > width:
+            rem = width
         sum = rem
         adr = c + spos
         l = ':{0:02X}{1:04X}00'.format(rem,adr)   # rem < 0x10
@@ -177,6 +158,7 @@ def bintoihex(buf, spos=0x0000):
             sum = (sum + nb)&M8
         l += '{0:02X}'.format((~sum+1)&M8)
         ret += l + '\n'
+        c += rem
     ret += ':00000001FF\n'        # EOF
     return ret
 
@@ -345,15 +327,10 @@ class fv1parse(object):
                 icnt += skplen + 1
 
         # convert program to machine code and prepare for output
-        cnt = 0
+        oft = 0
         for i in self.pl:
-            oft = cnt * 4
-            nop = tob32(op_gen(i['cmd']))
-            self.program[oft] = nop[0]
-            self.program[oft+1] = nop[1]
-            self.program[oft+2] = nop[2]
-            self.program[oft+3] = nop[3]
-            cnt += 1
+            struct.pack_into('>i', self.program, oft, op_gen(i['cmd']))
+            oft += 4
 
     def __register__(self):
         """Fetch a register definition."""
