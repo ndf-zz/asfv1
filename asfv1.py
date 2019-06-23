@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 #
 # asfv1: Alternate FV-1 Assembler
-# Copyright (C) 2017 Nathan Fraser
+# Copyright (C) 2017-2019 Nathan Fraser
 #
 # An alternate assembler for the Spin Semiconductor FV-1 DSP.
 # This assembler aims to replicate some of the behaviour of
@@ -37,16 +37,6 @@
 #
 #    To allow Spin style integer real literals use hack option -s
 #
-#  - Real numbers differ very slightly from those in the
-#    datasheet. Specifically:
-#
-#        Max S.23 0x7fffff = 0.9999998807907104
-#        Max S.15   0x7fff = 0.999969482421875
-#        Max S1.14  0x7fff = 1.99993896484375
-#        Max S.10    0x3ff = 0.9990234375
-#        Max S1.9    0x3ff = 1.998046875
-#        Max S4.6    0x3ff = 15.984375
-#
 #  - Input is assumed to be utf-8 text.
 #
 #  - By default the output is written to an intel hex file at
@@ -80,7 +70,7 @@ import shlex
 import struct
 
 # Constants
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 PROGLEN = 128
 DELAYSIZE = 32767
 
@@ -164,37 +154,37 @@ def bintoihex(buf, spos=0x0000, width=4):
 
 # Machine instruction table
 op_tbl = {
-	# mnemonic: [opcode, (arglen,left shift), ...]
+        # mnemonic: [opcode, (arglen,left shift), ...]
         'RDA':  [0b00000, (M15,5),(M11,21)],
         'RMPA': [0b00001, (M11,21)],
         'WRA':  [0b00010, (M15,5),(M11,21)],
         'WRAP': [0b00011, (M15,5),(M11,21)],
-	'RDAX': [0b00100, (M6,5),(M16,16)],
+        'RDAX': [0b00100, (M6,5),(M16,16)],
         'RDFX': [0b00101, (M6,5),(M16,16)],
-	'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
+        'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
         'WRAX': [0b00110, (M6,5),(M16,16)],
         'WRHX': [0b00111, (M6,5),(M16,16)],
         'WRLX': [0b01000, (M6,5),(M16,16)],
         'MAXX': [0b01001, (M6,5),(M16,16)],
-	'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
+        'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
         'MULX': [0b01010, (M6,5)],
         'LOG':  [0b01011, (M16,16),(M11,5)],
-	'EXP':  [0b01100, (M16,16),(M11,5)],
-	'SOF':  [0b01101, (M16,16),(M11,5)],
+        'EXP':  [0b01100, (M16,16),(M11,5)],
+        'SOF':  [0b01101, (M16,16),(M11,5)],
         'AND':  [0b01110, (M24,8)],
-	'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
+        'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
         'OR' :  [0b01111, (M24,8)],
         'XOR':  [0b10000, (M24,8)],
-	'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
-	'SKP':  [0b10001, (M5,27),(M6,21)],	# note 1
-	'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
+        'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
+        'SKP':  [0b10001, (M5,27),(M6,21)],	# note 1
+        'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
         'WLDS': [0b10010, (M1,29),(M9,20),(M15,5)],
         'WLDR': [0b10010, (M2,29),(M16,13),(M2,5)], # CHECK
         'JAM':  [0b10011, (M2,6)],
         'CHO':  [0b10100, (M2,30),(M2,21),(M6,24),(M16,5)], # CHECK
         'RAW':  [0b00000, (M32,0)],         # direct data insertion
-	# Notes:
-	# 1. In SpinASM IDE , condition flags expand to shifted values,
+        # Notes:
+        # 1. In SpinASM IDE , condition flags expand to shifted values,
         # 2. NOP is not documented, but expands to SKP 0,0 in SpinASM
 }
 
@@ -230,74 +220,74 @@ class fv1parse(object):
         self.jmptbl = { # jump table for skips
         }
         self.symtbl = {	# symbol table
-		'SIN0_RATE':	0x00,
+                'SIN0_RATE':	0x00,
                 'SIN0_RANGE':	0x01,
-		'SIN1_RATE':	0x02,
-		'SIN1_RANGE':	0x03,
-		'RMP0_RATE':	0x04,
-		'RMP0_RANGE':	0x05,
-		'RMP1_RATE':	0x06,
-		'RMP1_RANGE':	0x07,
-		'POT0':		0x10,
-		'POT1':		0x11,
-		'POT2':		0x12,
-		'ADCL':		0x14,
-		'ADCR':		0x15,
-		'DACL':		0x16,
-		'DACR':		0x17,
-		'ADDR_PTR':	0x18,
-		'REG0':		0x20,
-		'REG1':		0x21,
-		'REG2':		0x22,
-		'REG3':		0x23,
-		'REG4':		0x24,
-		'REG5':		0x25,
-		'REG6':		0x26,
-		'REG7':		0x27,
-		'REG8':		0x28,
-		'REG9':		0x29,
-		'REG10':	0x2a,
-		'REG11':	0x2b,
-		'REG12':	0x2c,
-		'REG13':	0x2d,
-		'REG14':	0x2e,
-		'REG15':	0x2f,
-		'REG16':	0x30,
-		'REG17':	0x31,
-		'REG18':	0x32,
-		'REG19':	0x33,
-		'REG20':	0x34,
-		'REG21':	0x35,
-		'REG22':	0x36,
-		'REG23':	0x37,
-		'REG24':	0x38,
-		'REG25':	0x39,
-		'REG26':	0x3a,
-		'REG27':	0x3b,
-		'REG28':	0x3c,
-		'REG29':	0x3d,
-		'REG30':	0x3e,
-		'REG31':	0x3f,
-		'SIN0':		0x00,
-		'SIN1':		0x01,
-		'RMP0':		0x02,
-		'RMP1':		0x03,
-		'RDA':		0x00,
-		'SOF':		0x02,
-		'RDAL':		0x03,
-		'SIN':		0x00,
-		'COS':		0x01,
-		'REG':		0x02,
-		'COMPC':	0x04,
-		'COMPA':	0x08,
-		'RPTR2':	0x10,
-		'NA':		0x20,
-		'RUN':		0x10,
-		'ZRC':		0x08,
-		'ZRO':		0x04,
-		'GEZ':		0x02,
-		'NEG':		0x01,
-        }
+                'SIN1_RATE':	0x02,
+                'SIN1_RANGE':	0x03,
+                'RMP0_RATE':	0x04,
+                'RMP0_RANGE':	0x05,
+                'RMP1_RATE':	0x06,
+                'RMP1_RANGE':	0x07,
+                'POT0':		0x10,
+                'POT1':		0x11,
+                'POT2':		0x12,
+                'ADCL':		0x14,
+                'ADCR':		0x15,
+                'DACL':		0x16,
+                'DACR':		0x17,
+                'ADDR_PTR':	0x18,
+                'REG0':		0x20,
+                'REG1':		0x21,
+                'REG2':		0x22,
+                'REG3':		0x23,
+                'REG4':		0x24,
+                'REG5':		0x25,
+                'REG6':		0x26,
+                'REG7':		0x27,
+                'REG8':		0x28,
+                'REG9':		0x29,
+                'REG10':	0x2a,
+                'REG11':	0x2b,
+                'REG12':	0x2c,
+                'REG13':	0x2d,
+                'REG14':	0x2e,
+                'REG15':	0x2f,
+                'REG16':	0x30,
+                'REG17':	0x31,
+                'REG18':	0x32,
+                'REG19':	0x33,
+                'REG20':	0x34,
+                'REG21':	0x35,
+                'REG22':	0x36,
+                'REG23':	0x37,
+                'REG24':	0x38,
+                'REG25':	0x39,
+                'REG26':	0x3a,
+                'REG27':	0x3b,
+                'REG28':	0x3c,
+                'REG29':	0x3d,
+                'REG30':	0x3e,
+                'REG31':	0x3f,
+                'SIN0':		0x00,
+                'SIN1':		0x01,
+                'RMP0':		0x02,
+                'RMP1':		0x03,
+                'RDA':		0x00,
+                'SOF':		0x02,
+                'RDAL':		0x03,
+                'SIN':		0x00,
+                'COS':		0x01,
+                'REG':		0x02,
+                'COMPC':	0x04,
+                'COMPA':	0x08,
+                'RPTR2':	0x10,
+                'NA':		0x20,
+                'RUN':		0x10,
+                'ZRC':		0x08,
+                'ZRO':		0x04,
+                'GEZ':		0x02,
+                'NEG':		0x01,
+    }
 
     def __mkopcodes__(self):
         """Convert the parse list into machine code for output."""
@@ -329,7 +319,7 @@ class fv1parse(object):
         # convert program to machine code and prepare for output
         oft = 0
         for i in self.pl:
-            struct.pack_into('>i', self.program, oft, op_gen(i['cmd']))
+            struct.pack_into('>I', self.program, oft, op_gen(i['cmd']))
             oft += 4
 
     def __register__(self):
