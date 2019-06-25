@@ -20,6 +20,11 @@ INSTALLATION:
 
 - pip3 install asfv1
 
+USAGE:
+------
+
+  asfv1 input.asm output.hex
+
 OVERVIEW:
 ---------
 
@@ -61,10 +66,13 @@ There are some minor quirks:
   set to binary with -b (--binary), the program number option is
   ignored.
 
-For more information on the FV-1, refer to the Spin website:
+LINKS:
+------
 
-Web Site: <http://spinsemi.com/products.html>
+- FV-1 disassembler: <https://github.com/ndf-zz/disfv1>
 
-Datasheet: <http://spinsemi.com/Products/datasheets/spn1001/FV-1.pdf>
+- Spin FV-1 website: <http://spinsemi.com/products.html>
 
-AN0001: <http://spinsemi.com/Products/appnotes/spn1001/AN-0001.pdf>
+- Datasheet: <http://spinsemi.com/Products/datasheets/spn1001/FV-1.pdf>
+
+- AN0001: <http://spinsemi.com/Products/appnotes/spn1001/AN-0001.pdf>
