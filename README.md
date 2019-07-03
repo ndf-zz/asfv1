@@ -1,5 +1,4 @@
-asfv1
-=====
+# asfv1
 
 Alternate Assembler for Spin Semi FV-1
 
@@ -10,23 +9,43 @@ assembler aims to replicate some of the behaviour of the Spin FV-1
 assembler in standard Python, for developers who are unable or unwilling
 to use the Spin provided IDE.
 
-REQUIREMENTS:
--------------
+
+## REQUIREMENTS:
 
 - Python \>= 3
 
-INSTALLATION:
--------------
 
-- pip3 install asfv1
+## INSTALLATION:
 
-USAGE:
-------
+	$ pip3 install asfv1
 
-  asfv1 input.asm output.hex
 
-OVERVIEW:
----------
+## USAGE:
+
+	$ asfv1 input.asm output.hex
+
+	$ asfv1 -h
+	usage: asfv1 [-h] [-q] [-v] [-c] [-n] [-s] [-p {0,1,2,3,4,5,6,7}] [-b]
+	             infile [outfile]
+	
+	Assemble a single FV-1 DSP program.
+	
+	positional arguments:
+	  infile                program source file
+	  outfile               assembled output file
+	
+	optional arguments:
+	  -h, --help            show this help message and exit
+	  -q, --quiet           suppress warnings
+	  -v, --version         print version
+	  -c, --clamp           clamp out of range values without error
+	  -n, --noskip          don't skip unused instruction space
+	  -s, --spinreals       read literals 2 and 1 as 2.0 and 1.0
+	  -p {0,1,2,3,4,5,6,7}  target program number (hex output)
+	  -b, --binary          write binary output instead of hex
+
+
+## OVERVIEW:
 
 asfv1 is based on information in the FV-1 datasheet and AN0001 "Basics
 of the LFOs in the FV-1". It assembles a DSP program into machine code,
@@ -45,7 +64,7 @@ There are some minor quirks:
   line option -c (--clamp) will instead restrict the value, where
   possible, and issue a warning.
 
-- Unlike the Spin assembler, non-sensical but othwerwise valid
+- Unlike the Spin assembler, non-sensical but otherwise valid
   arguments are assembled without error.
 
 - Raw data can be inserted into the program using the RAW
@@ -66,13 +85,11 @@ There are some minor quirks:
   set to binary with -b (--binary), the program number option is
   ignored.
 
-LINKS:
-------
+
+## LINKS:
 
 - FV-1 disassembler: <https://github.com/ndf-zz/disfv1>
-
+- Dervish eurorack FV-1 module: <http://gbiswell.myzen.co.uk/dervish/Readme_First.html>
 - Spin FV-1 website: <http://spinsemi.com/products.html>
-
 - Datasheet: <http://spinsemi.com/Products/datasheets/spn1001/FV-1.pdf>
-
 - AN0001: <http://spinsemi.com/Products/appnotes/spn1001/AN-0001.pdf>
