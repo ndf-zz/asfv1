@@ -175,7 +175,7 @@ ignore all text including the ';' up to the end of a line. Examples:
 Directive 'EQU' assigns the constant value resulting from the
 evaluation of 'EXPRESSION' (see below) to the text label 'LABEL'.
 LABEL must begin with one alphabetic character in the set A-Z,a-z
-and can contain any number of alphanumeric characters.
+and can contain any number of alphanumeric characters plus underscore.
 EXPRESSION can contain any previously assigned labels, including
 those pre-defined by the assembler (see Pre-defined Labels below). For
 compatability with SpinASM, the order of 'EQU' and 'LABEL'
@@ -261,8 +261,7 @@ and can be placed between instructions anywhere in a source file.
 	target2:			; target on its own line
 	target3:	and	0x12	; all three targets are the same
 
-Use of a predefined symbol or a previously equated name for 
-a target label will result in a parser error:
+Use of an already defined label for a target will result in a parser error:
 
 	EQU	error	-1
 	error:	or	0x800000
@@ -271,7 +270,7 @@ a target label will result in a parser error:
 
 ### Instructions
 
-Each instruction is represented by a mnemonic label followed by zero 
+Each instruction is represented by a mnemonic text followed by zero 
 or more operand expressions separated by commas.
 
 	MNEMONIC	OPERAND,OPERAND,...
@@ -405,19 +404,13 @@ The following text labels are pre-defined by asfv1.
 
 ## Instruction Reference
 
-### rda	ADDRESS, MULTIPLIER
+### rda ADDRESS, MULTIPLIER
 
-Multiply and accumulate a sample from the delay memory.
+Multiply and accumulate a sample from delay memory.
 
-Operands:
-
-	ADDRESS: Unsigned 15bit integer Delay address (0 - 32767)
-	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
-	OPCODE: 0b00000
-
-Assembly:
-	
-	MULTIPLIER<<21 | ADDRESS<<5 | 0b00000
+	ADDRESS:	Unsigned 15bit integer delay address
+	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<21 | ADDRESS<<5 | 0b00000
 
 Action:
 
@@ -436,14 +429,8 @@ Multiply and accumulate a sample from the delay memory, using
 ADDR_PTR as the delay address. Note: ADDR_PTR is left aligned
 into a signed 24 bit value.
 
-Operands:
-
-	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
-	OPCODE: 0b00001
-
-Assembly:
-	
-	MULTIPLIER<<21 | 0b00001
+	MULTIPLIER:	Real S1_9 | Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<21 | 0b00001
 
 Action:
 
@@ -457,19 +444,13 @@ Example:
 		wrax	ADDR_PTR,0.0	; save to ADDR_PTR and clear ACC
 		rmpa	0.25		; add 0.25 * delay[1234] to ACC
 
-### wra	ADDRESS, MULTIPLIER
+### wra ADDRESS, MULTIPLIER
 
 Write ACC to delay memory and scale by multiplier.
 
-Operands:
-
-	ADDRESS: Unsigned 15bit integer Delay address (0 - 32767)
-	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
-	OPCODE: 0b00010
-
-Assembly:
-	
-	MULTIPLIER<<21 | ADDRESS<<5 | 0b00010
+	ADDRESS:	Unsigned 15bit integer delay address
+	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<21 | ADDRESS<<5 | 0b00010
 
 Action:
 
@@ -479,36 +460,412 @@ Action:
 
 Example:	
 
-		wra	pdel^+324,0.25	; write ACC to delay[pdel^+324] 0.25*ACC
+		wra	pdel^+324,0.25	; write ACC to delay[pdel^+324] scale ACC by 0.25
 		wra	pdel#,0.0	; write ACC to delay[pdel#] clear ACC
 
 ### wrap MULTIPLIER
 
-Write ACC to delay memory, using
-ADDR_PTR as the delay address. Note: ADDR_PTR is left aligned
-into a signed 24 bit value.
+Write ACC to delay memory, using ADDR_PTR as the delay address.
+Note: ADDR_PTR is left aligned into a signed 24 bit value. 
+Multiply ACC, add to LR and save to ACC.
 
-Operands:
-
-	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
-	OPCODE: 0b00011
-
-Assembly:
-	
-	MULTIPLIER<<21 | 0b00011
+	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<21 | 0b00011
 
 Action:
 
 	delay[ADDR_PTR/256] <- ACC
 	PACC <- ACC
-	ACC <- MULTIPLIER * ACC
+	ACC <- MULTIPLIER * ACC + LR
 
 Example:	
 
 		or	0x1000<<8	; load 0x100000 into ACC
 		wrax	ADDR_PTR,0.0	; save to ADDR_PTR and clear ACC
 		ldax	ADCL		; read from left input
-		wrap	0.3		; write ACC to delay[0x1000] 0.3*ACC
+		wrap	0.3		; write ACC to delay[0x1000] scale ACC by 0.3 add to LR
+
+### rdax REGISTER, MULTIPLIER
+
+Multiply and accumulate contents of register.
+
+	REGISTER:	Unsigned 6bit integer register address
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	Assembly:	MULTIPLIER<<16 | REGISTER<<5 | 0b00100
+
+Action:
+
+	ACC <- ACC + MULTIPLIER * (*REGISTER)
+	PACC <- ACC
+
+Example:	
+
+		rdax	POT0,0.11	; add 0.11*POT0 to ACC
+		rdax	REG8,-0.66	; subtract 0.66*REG8 from ACC
+
+### rdfx REGISTER, MULTIPLIER
+
+Subtract register content from ACC, multiply and add to register content.
+
+	REGISTER:	Unsigned 6bit integer register address
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	Assembly:	MULTIPLIER<<16 | REGISTER<<5 | 0b00101
+
+Action:
+
+	ACC <- (*REGISTER) + MULTIPLIER * (ACC - (*REGISTER))
+	PACC <- ACC
+
+Example:	
+
+		rdfx	ADCL,0.0	; transfer ADCL content to ACC
+		rdfx	REG0,0.3	; average using temp reg
+		wrlx	REG0,0.0	; infinite shelft LPF
+
+### ldax REGISTER
+
+Copy register content to ACC. Assembles to rdax with a multiplier
+of 0.0.
+
+	REGISTER:	Unsigned 6bit integer register address
+	Assembly:	REGISTER<<5 | 0b00101
+
+Action:
+
+	ACC <- (*REGISTER) + 0.0 * (ACC - (*REGISTER))
+	PACC <- ACC
+
+Example:	
+
+		ldax	ADCL		; load ADCL content into ACC
+		wrax	DACL,0.0	; write ACC to DACL
+
+### wrax REGISTER, MULTIPLIER
+
+Copy ACC to REGISTER, and multiply ACC.
+
+	REGISTER:	Unsigned 6bit integer register address
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	Assembly:	MULTIPLIER<<16 | REGISTER<<5 | 0b00110
+
+Action:
+
+	(*REGISTER) <- ACC
+	PACC <- ACC
+	ACC <- MULTIPLIER * ACC
+
+Example:	
+
+		wrax	REG0,-1.0	; copy ACC into REG0 and invert ACC
+		wrax	DACL,0.0	; copy ACC into DAC and clear ACC
+
+### wrhx REGISTER, MULTIPLIER
+
+Copy ACC to REGISTER, multiply ACC and add to PACC.
+
+	REGISTER:	Unsigned 6bit integer register address
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	Assembly:	MULTIPLIER<<16 | REGISTER<<5 | 0b00111
+
+Action:
+
+	(*REGISTER) <- ACC
+	PACC <- ACC
+	ACC <- PACC + MULTIPLIER * ACC
+
+Example:	
+
+		rdfx	REG0,0.3	; average using temp reg
+		wrhx	REG0,-0.5	; -6dB shelf highpass filter
+		wrhx	REG1,0.0	; swap PACC and ACC
+
+### wrlx REGISTER, MULTIPLIER
+
+Copy ACC to REGISTER, subtract ACC from PACC, multiply and add to PACC.
+
+	REGISTER:	Unsigned 6bit integer register address
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	Assembly:	MULTIPLIER<<16 | REGISTER<<5 | 0b01000
+
+Action:
+
+	(*REGISTER) <- ACC
+	PACC <- ACC
+	ACC <- PACC + MULTIPLIER * (PACC - ACC)
+
+Example:	
+
+		rdfx	REG0,0.3	; average using temp reg
+		wrlx	REG0,-0.5	; -6dB shelf lowpass filter
+		wrlx	REG1,0.0	; swap PACC and ACC
+
+### maxx REGISTER, MULTIPLIER
+
+Copy the maximum of the absolute value of ACC and the 
+absolute value of REGISTER content times MULTIPLIER into ACC.
+
+	REGISTER:	Unsigned 6bit integer register address
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	Assembly:	MULTIPLIER<<16 | REGISTER<<5 | 0b01001
+
+Action:
+
+	ACC <- maximum (abs (ACC), abs (MULTIPLIER * (*REGISTER)))
+	PACC <- ACC
+
+Example:	
+
+		ldax	ADCL		; copy ADCL to ACC
+		maxx	ADCR,1.0	; copy max of left and right to ACC
+		maxx	0,0		; absolute value of ACC
+
+### absa
+
+Copy the absolute value of ACC back into ACC. Assembles to absa 
+with null register and zero multiplier.
+
+	Assembly:	0b01001
+
+Action:
+
+	ACC <- abs (ACC)
+	PACC <- ACC
+
+Example:	
+
+		ldax	ADCL		; copy ADCL to ACC
+		absa			; absolute value of ACC
+
+### mulx REGISTER
+
+Multiply ACC by the content of REGISTER.
+
+	REGISTER:	Unsigned 6bit integer register address
+	Assembly:	REGISTER<<5 | 0b01010
+
+Action:
+
+	ACC <- ACC * (*REGISTER)
+	PACC <- ACC
+
+Example:	
+
+		ldax	ADCL		; copy ADCL to ACC
+		mulx	POT0		; scale input by POT0
+
+### log MULTIPLIER, OFFSET
+
+Compute the base 2 log of the absolute value of ACC,
+multiply and then add offset. Input ACC is S_23,
+result ACC is S4_19.
+
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	OFFSET:		Real S4_6 or Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<16 | OFFSET<<5 | 0b01011
+
+Action:
+
+	ACC <- OFFSET + MULTIPLIER * log2 (abs (ACC))
+	PACC <- ACC
+
+Example:	
+
+		log	0.5,0.0		; take log of ACC and divide by 2
+		exp	1.0,0.0		; compute effective sqrt
+
+### exp MULTIPLIER, OFFSET
+
+Raise 2 to the power of ACC, multiply and add OFFSET.
+multiply and then add offset. Input ACC is S4_16, result
+ACC is S_23.
+
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	OFFSET:		Real S_10 or Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<16 | OFFSET<<5 | 0b01100
+
+Action:
+
+	ACC <- OFFSET + MULTIPLIER * 2**ACC
+	PACC <- ACC
+
+Example:	
+
+		log	1.0,4.0		; add log(acc) to log(16)
+		exp	1.0,0.0		; x16 gain log(ab)=log(a)+log(b)
+
+### sof MULTIPLIER, OFFSET
+
+Scale ACC and then add an offset.
+
+	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
+	OFFSET:		Real S_10 or Unsigned 11bit integer
+	Assembly:	MULTIPLIER<<16 | OFFSET<<5 | 0b01101
+
+Action:
+
+	ACC <- OFFSET + MULTIPLIER * ACC
+	PACC <- ACC
+
+Example:	
+
+		sof	1.5,-0.4	; multiply acc by 1.5 and subtract 0.4
+
+### and VALUE
+
+Perform a bitwise AND of ACC and VALUE
+
+	VALUE:		Real S_23 or Unsigned 24bit integer
+	Assembly:	VALUE<<8 | 0b01110
+
+Action:
+
+	ACC <- ACC & VALUE
+	PACC <- ACC
+
+Example:	
+
+		ldax	POT0		; load POT0 into ACC
+		and	0x700000	; mask pot to 8 steps
+		and	0x0		; clear ACC
+
+### clr
+
+Perform a bitwise AND of ACC with zero - clearing ACC
+
+	Assembly:	0b01110
+
+Action:
+
+	ACC <- 0
+	PACC <- ACC
+
+Example:	
+
+		clr			; clear ACC
+		rda	1234,1.0	; load delay[1234]
+
+### or VALUE
+
+Perform a bitwise OR of ACC and VALUE
+
+	VALUE:		Real S_23 or Unsigned 24bit integer
+	Assembly:	VALUE<<8 | 0b01111
+
+Action:
+
+	ACC <- ACC | VALUE
+	PACC <- ACC
+
+Example:	
+
+		clr			; clear ACC
+		or	-2.3427e-4	; load an immediate value into ACC
+		or	0x0a40f1	; set specific bits in ACC
+
+### xor VALUE
+
+Perform a bitwise XOR of ACC and VALUE
+
+	VALUE:		Real S_23 or Unsigned 24bit integer
+	Assembly:	VALUE<<8 | 0b10000
+
+Action:
+
+	ACC <- ACC ^ VALUE
+	PACC <- ACC
+
+Example:	
+
+		ldax	POT0		; load POT0
+		and	0x7f0000	; mask off lower bits
+		xor	0x150000	; compare with 0x150000
+		skp	ZRO,equal	; if same, skip to equal
+		xor	0x150000	; else restore original value
+
+### not
+
+Perform a bitwise negation of ACC by XOR with 0xffffff.
+
+	Assembly:	0xffffff<<8 | 0b10000
+
+Action:
+
+	ACC <- ~ACC
+	PACC <- ACC
+
+Example:	
+
+		ldax	POT0		; load POT0
+		not			; invert all bits
+
+### skp	CONDITON,OFFSET
+
+Skip over OFFSET instructions if all flagged CONDITIONS are met.
+
+	CONDITION:	Unsigned 5bit flags
+	OFFSET:		Unsigned 6bit integer OR target label
+	Assembly:	VALUE<<8 | 0b10001
+
+Condition Flags:
+	
+	NEG	0x01	ACC is less than zero
+	GEZ	0x02	ACC is greater than or equal to zero
+	ZRO	0x03	ACC is zero
+	ZRC	0x04	sign of ACC and PACC differ
+	RUN	0x05	Program has completed at least one sample
+
+Notes:
+
+ - if OFFSET starts with a label, it is assumed to be a jump target,
+   which should be present later in the program. An attempt to skip
+   backward will raise an error:
+
+	start:	clr
+		skp	0,start		; try to skip backward
+
+	parse error: Target 'START' does not follow SKP on line ...
+
+ - the maximum possible skip offset is 63, an error will be generated if
+   the named target is out of range:
+
+		skp	0,target
+		[>63 instructions]
+	target: clr
+
+	parse error: Offset from SKP to 'TARGET' (0x44) too large on line ...
+
+ - To force evaluation of an expression in order to compute an offset,
+   wrap the expression in parentheses:
+
+	EQU	three	3
+		skp	0,three+3	; error - three is not a target
+
+	parse error: Unexpected input OPERATOR/'+' on line ...
+
+		skp	0,(three+3)	; ok, offset is evaluated as expression
+
+ - if mutually exclusive conditions are specified, the skip is
+   assembled but never performed, turning the instruction into NOP:
+
+		skp	NEG|ZRO,target	; ACC cannot be negative AND zero
+
+Example:	
+
+		skp	0,target	; unconditionally skip to target
+		ldax	ADCL		; read in ADCL
+		ldax	REG0		; load a previous value
+		skp	ZRC|NEG,target	; skip to target on positive zero crossing
+		skp	RUN,1		; skip 1 instruction except on first run
+
+### nop
+
+No operation, equivalent to skp 0,0. Use for padding, or blocking.
+
+	Assembly:	0b10001
+
+Example:	
+
+		nop nop nop nop		; reserve 4 instruction slots
 
 ## Links
 
