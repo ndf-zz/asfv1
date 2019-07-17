@@ -120,11 +120,10 @@ ignored.
 
 An FV-1 assembly program recogised by asfv1 closely resembles the
 SpinIDE (.spn) format. It is made up of zero to 128 instructions with 
-optional target labels and any number of optional comments, 
-and assembly directives. Text names and symbols are matched
-case-insensitively. Each of the input
-instructions is assembled into a single 32 bit machine code for
-the FV-1. If less than 128 asssembly instructions are input,
+optional targets, labels, comments and assembly directives.
+Instruction mnemonics, targets and labels are matched case-insensitively.
+Each of the input instructions is assembled into a single 32 bit
+machine code. If less than 128 asssembly instructions are input,
 the unallocated program space is padded with 'NOP' instructions.
 Example:
 
@@ -159,7 +158,7 @@ When assembled with asfv1, the resulting machine code contains
 	*
 	00000200
 
-## Comments 
+### Comments 
 
 A semicolon character ';' starts comment text. the assembler will
 ignore all text including the ';' up to the end of a line. Examples:
@@ -171,13 +170,15 @@ ignore all text including the ';' up to the end of a line. Examples:
 
 ### Label Assignment
 
-	EQU	SYMBOL	EXPRESSION
+	EQU	LABEL	EXPRESSION
 
 Directive 'EQU' assigns the constant value resulting from the
-evaluation of 'EXPRESSION' (see below) to the text label 'SYMBOL'.
-EXPRESSION can contain any previously assigned symbols, including
-those pre-defined by the assembler (see Constants below). For
-compatability with SpinASM, the order of 'EQU' and 'SYMBOL'
+evaluation of 'EXPRESSION' (see below) to the text label 'LABEL'.
+LABEL must begin with one alphabetic character in the set A-Z,a-z
+and can contain any number of alphanumeric characters.
+EXPRESSION can contain any previously assigned labels, including
+those pre-defined by the assembler (see Pre-defined Labels below). For
+compatability with SpinASM, the order of 'EQU' and 'LABEL'
 may be swapped. Examples:
 
 	EQU	input	ADCL		; assign ADCL (0x14) to 'input'
@@ -186,19 +187,19 @@ may be swapped. Examples:
 
 EQU does not generate any code in the program, it merely reserves
 the name for subsequent use. The parser evaluates all expressions
-in-place so a name must be declared before it is used:
+in-place so a label must be declared before it is used:
 
 		or	missing		; error
 	EQU	missing	123		; missing is used before definition
 
-	parse error: Undefined symbol 'missing' on line ...
+	parse error: Undefined label 'missing' on line ...
 
-Re-defining an already assigned name is allowed, but will generate 
+Re-defining an already assigned label is allowed, but will generate 
 a warning message:
 
 	EQU	POT0	POT1		; point POT0 to POT1
 
-	warning: Symbol 'POT0' re-defined on line ...
+	warning: Label 'POT0' re-defined on line ...
 
 ### Memory Allocation
 
@@ -228,7 +229,7 @@ or a parse error will be generated:
 
 	parse error: Memory 'INVALID' length 123.4556 not integer on line ...
 
-	mem	third	32767//3	; valid due to integer divide
+	MEM	third	32767//3	; valid due to integer divide
 
 The assembler keeps track of allocated memory, placing each new
 segment immediately after those previously defined. Each segment 
@@ -240,8 +241,8 @@ an attempt to use more than the available space will cause a parse error:
 
 	parse error: Delay exhausted: requested 255 exceeds 254 available on line ...
 
-Since the caret charater '^' is an operator in expressions for the 
-bitwise XOR operation, expressions which reference a delay may
+The caret charater '^' is also used as an operator in expressions for
+bitwise XOR, so expressions which reference a delay may
 need to be explicitly parenthesised if used with '^':
 
 		or	delay^0xffff	; parse error - delay label takes caret
@@ -260,8 +261,8 @@ and can be placed between instructions anywhere in a source file.
 	target2:			; target on its own line
 	target3:	and	0x12	; all three targets are the same
 
-Use of a predefined symbol or a previously equated name will result
-in a parser error:
+Use of a predefined symbol or a previously equated name for 
+a target label will result in a parser error:
 
 	EQU	error	-1
 	error:	or	0x800000
@@ -282,9 +283,10 @@ value. The sizes and types are specific to each instruction
 ### Operand Expressions
 
 Operand expressions are arithmetic or bitwise operations,
-evaluated on numbers or labels in-place by the parser
-with similar precedence and ordering as the Python interpreter.
-Expressions can be any valid combination of the following operators,
+evaluated in-place by the parser. Operators have similar
+precedence and ordering as in the Python interpreter.
+Expressions can be any valid combination
+of labels, numbers and the following operators,
 ordered from lowest precedence (least binding) to highest
 (most binding):
 
@@ -304,8 +306,8 @@ ordered from lowest precedence (least binding) to highest
 	**	power
 	( )	parentheses
 
-Combined with pre-defined symbols, delays and numeric
-literals. The following literal formats are recognised:
+In addition to labels, the following numeric literal
+formats are recognised:
 
 	123		decimal integer 291
 	0x123		hexadecimal integer 291
@@ -332,9 +334,11 @@ following grammar:
 	m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
 	u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
 	power ::= atom ["**" u_expr]
-	atom ::= identifier | literal | "(" op_expr ")"
+	atom ::= label | literal | "(" op_expr ")"
 
-## Fixed Point Conversion
+Where label is a text label, and literal is a numeric literal.
+
+### Fixed Point Conversion
 
 The FV-1 arithmetic processor operates on fixed-point numbers
 which are converted by the assembler from an intermediate
@@ -356,6 +360,48 @@ of each of the FV-1 number formats.
 	S1_14	16	16384	-2.0	1.99993896484375
 	S_15	16	32768	-1.0	0.999969482421875
 	S_23	24	8388608	-1.0	0.9999998807907104
+
+### Pre-defined Labels
+
+The following text labels are pre-defined by asfv1.
+
+	Label		Value		Description
+	SIN0_RATE	0x00		SIN0 rate control register
+	SIN0_RANGE	0x01		SIN0 range control register
+	SIN1_RATE	0x02		SIN1 rate control register
+	SIN1_RANGE	0x03		SIN1 range control register
+	RMP0_RATE	0x04		RMP0 rate control register
+	RMP0_RANGE	0x05		RMP0 range control register
+	RMP1_RATE	0x06		RMP1 rate control register
+	RMP1_RANGE	0x07		RMP1 range control register
+	POT0		0x10		POT0 input register
+	POT1		0x11		POT1 input register
+	POT2		0x12		POT2 input register
+	ADCL		0x14		Left AD input register
+	ADCR		0x15		Right AD input register
+	DACL		0x16		Left DA output register
+	DACR		0x17		Right DA output register
+	ADDR_PTR	0x18		Delay address pointer
+	REG0 - REG31	0x20 - 0x3f	General purpose registers
+	SIN0		0x00		SIN0 LFO selector
+	SIN1		0x01		SIN1 LFO selector
+	RMP0		0x02		RMP0 LFO selector
+	RMP1		0x03		RMP1 LFO selector
+	RDA		0x00		CHO type selector
+	SOF		0x02		CHO type selector
+	RDAL		0x03		CHO type selector
+	SIN		0x00		CHO flag
+	COS		0x01		CHO flag
+	REG		0x02		CHO flag
+	COMPC		0x04		CHO flag
+	COMPA		0x08		CHO flag
+	RPTR2		0x10		CHO flag
+	NA		0x20		CHO flag
+	RUN		0x10		SKP condition flag
+	ZRC		0x08		SKP condition flag
+	ZRO		0x04		SKP condition flag
+	GEZ		0x02		SKP condition flag
+	NEG		0x01		SKP condition flag
 
 ## Instruction Reference
 
