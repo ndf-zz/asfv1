@@ -118,7 +118,7 @@ ignored.
 
 ## Program Syntax
 
-An FV-1 assembly program recogised by asfv1 closely resembles the
+An FV-1 assembly program recognised by asfv1 closely resembles the
 SpinIDE (.spn) format. It is made up of zero to 128 instructions with 
 optional targets, labels, comments and assembly directives.
 Instruction mnemonics, targets and labels are matched case-insensitively.
@@ -270,7 +270,7 @@ Use of an already defined label for a target will result in a parser error:
 
 ### Instructions
 
-Each instruction is represented by a mnemonic text followed by zero 
+An instruction is represented by a mnemonic text followed by zero 
 or more operand expressions separated by commas.
 
 	MNEMONIC	OPERAND,OPERAND,...
@@ -308,7 +308,7 @@ ordered from lowest precedence (least binding) to highest
 In addition to labels, the following numeric literal
 formats are recognised:
 
-	123		decimal integer 291
+	123		decimal integer 123
 	0x123		hexadecimal integer 291
 	$123		hexadecimal integer 291
 	0b1010_1111	binary integer 175
@@ -322,7 +322,7 @@ unchanged or a floating point value which is later converted
 to the closest fixed-point integer of the required size
 (see Fixed Point Conversion below).
 
-More formally, a valid operand expression matches the
+More formally, a valid operand expression (op_expr) matches the
 following grammar:
 
 	op_expr ::= xor_expr | op_expr "|" xor_expr
@@ -426,8 +426,7 @@ Example:
 ### rmpa MULTIPLIER
 
 Multiply and accumulate a sample from the delay memory, using
-ADDR_PTR as the delay address. Note: ADDR_PTR is left aligned
-into a signed 24 bit value.
+the contents of ADDR_PTR as the delay address.
 
 	MULTIPLIER:	Real S1_9 | Unsigned 11bit integer
 	Assembly:	MULTIPLIER<<21 | 0b00001
@@ -438,11 +437,21 @@ Action:
 	PACC <- ACC
 	LR <- delay[ADDR_PTR/256]
 
+Notes:
+
+   - 15 bit delay addresses in ADDR_PTR are left-aligned 8 bits,
+     they can be accessed using the real value 0->0.9999 or
+     directly by multiplying the desired delay address by 256.
+
 Example:	
 
 		or	1234<<8		; load 1234*256 into ACC
 		wrax	ADDR_PTR,0.0	; save to ADDR_PTR and clear ACC
 		rmpa	0.25		; add 0.25 * delay[1234] to ACC
+		clr
+		or	0.5		; load 0.5 into ACC
+		wrax	ADDR_PTR,0.0	; save the address pointer
+		rmpa	0.7		; add 0.7 * delay[0x4000]
 
 ### wra ADDRESS, MULTIPLIER
 
@@ -466,7 +475,6 @@ Example:
 ### wrap MULTIPLIER
 
 Write ACC to delay memory, using ADDR_PTR as the delay address.
-Note: ADDR_PTR is left aligned into a signed 24 bit value. 
 Multiply ACC, add to LR and save to ACC.
 
 	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
@@ -532,7 +540,7 @@ of 0.0.
 
 Action:
 
-	ACC <- (*REGISTER) + 0.0 * (ACC - (*REGISTER))
+	ACC <- (*REGISTER)
 	PACC <- ACC
 
 Example:	
@@ -621,7 +629,7 @@ Example:
 
 ### absa
 
-Copy the absolute value of ACC back into ACC. Assembles to absa 
+Copy the absolute value of ACC back into ACC. Assembles to maxx
 with null register and zero multiplier.
 
 	Assembly:	0b01001
@@ -670,14 +678,13 @@ Action:
 
 Example:	
 
-		log	0.5,0.0		; take log of ACC and divide by 2
-		exp	1.0,0.0		; compute effective sqrt
+		log	0.5,0.0		; 2*log2(a) = log2(a**2)
+		exp	1.0,0.0		; a = 2**(0.5 * log2(a**2))
 
 ### exp MULTIPLIER, OFFSET
 
 Raise 2 to the power of ACC, multiply and add OFFSET.
-multiply and then add offset. Input ACC is S4_16, result
-ACC is S_23.
+Input ACC is S4_16, result ACC is S_23.
 
 	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
 	OFFSET:		Real S_10 or Unsigned 11bit integer
@@ -690,8 +697,8 @@ Action:
 
 Example:	
 
-		log	1.0,4.0		; add log(acc) to log(16)
-		exp	1.0,0.0		; x16 gain log(ab)=log(a)+log(b)
+		log	1.0,4.0		; log2(16*a) = log2(16) + log2(a)
+		exp	1.0,0.0		; 16*a = 2**(4+log2(a))
 
 ### sof MULTIPLIER, OFFSET
 
@@ -804,7 +811,7 @@ Skip over OFFSET instructions if all flagged CONDITIONS are met.
 
 	CONDITION:	Unsigned 5bit flags
 	OFFSET:		Unsigned 6bit integer OR target label
-	Assembly:	VALUE<<8 | 0b10001
+	Assembly:	CONDITION<<27 | OFFSET<<21 | 0b10001
 
 Condition Flags:
 	
@@ -812,7 +819,7 @@ Condition Flags:
 	GEZ	0x02	ACC is greater than or equal to zero
 	ZRO	0x03	ACC is zero
 	ZRC	0x04	sign of ACC and PACC differ
-	RUN	0x05	Program has completed at least one sample
+	RUN	0x05	Program has completed at least one iteration
 
 Notes:
 
@@ -820,34 +827,34 @@ Notes:
    which should be present later in the program. An attempt to skip
    backward will raise an error:
 
-	start:	clr
-		skp	0,start		; try to skip backward
+		start:	clr
+			skp	0,start		; try to skip backward
 
-	parse error: Target 'START' does not follow SKP on line ...
+		parse error: Target 'START' does not follow SKP on line ...
 
  - the maximum possible skip offset is 63, an error will be generated if
    the named target is out of range:
 
-		skp	0,target
-		[>63 instructions]
-	target: clr
-
-	parse error: Offset from SKP to 'TARGET' (0x44) too large on line ...
+			skp	0,target
+			[>63 instructions]
+		target: clr
+	
+		parse error: Offset from SKP to 'TARGET' (0x44) too large on line ...
 
  - To force evaluation of an expression in order to compute an offset,
    wrap the expression in parentheses:
 
-	EQU	three	3
-		skp	0,three+3	; error - three is not a target
+		EQU	three	3
+			skp	0,three+3	; error - three is not a target
 
-	parse error: Unexpected input OPERATOR/'+' on line ...
+		parse error: Unexpected input OPERATOR/'+' on line ...
 
-		skp	0,(three+3)	; ok, offset is evaluated as expression
+			skp	0,(three+3)	; ok, offset is evaluated as expression
 
  - if mutually exclusive conditions are specified, the skip is
    assembled but never performed, turning the instruction into NOP:
 
-		skp	NEG|ZRO,target	; ACC cannot be negative AND zero
+			skp	NEG|ZRO,target	; ACC cannot be negative AND zero
 
 Example:	
 
