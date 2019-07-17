@@ -1081,6 +1081,8 @@ class fv1parse(object):
             oft = self.icnt
             if lbl in self.jmptbl and oft != self.jmptbl[lbl]:
                 self.parseerror('Label {} redefined'.format(lbl))
+            if lbl in self.symtbl:
+                self.parseerror('Label {} already assigned'.format(lbl))
             self.jmptbl[lbl] = oft
             self.__next__()
         else:
