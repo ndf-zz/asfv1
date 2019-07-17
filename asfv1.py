@@ -919,22 +919,22 @@ class fv1parse(object):
         if self.sym['type'] == 'ARGSEP':
             self.parseerror('Excess operands for ' + mnemonic)
 
-    def __deref__(self, symbol):
+    def __deref__(self, label):
         """Return a value defined in the symbol table."""
         seen = set()
-        look = symbol
+        look = label
         while True:
             if look in seen:
-                self.parseerror('Circular definition of symbol '
-                                 + repr(symbol))
+                self.parseerror('Circular definition of label '
+                                 + repr(label))
             if look in self.symtbl:
                 look = self.symtbl[look]
                 if type(look) is not str:
                     break
             else:
                 self.parseerror('Value ' + repr(look) 
-                      + ' undefined for symbol ' + repr(symbol))
-            seen.add(symbol)
+                      + ' undefined for label ' + repr(label))
+            seen.add(label)
         return look
 
     def __expression__(self):
@@ -1065,7 +1065,7 @@ class fv1parse(object):
                 ret = self.__deref__(stxt)
                 self.__next__()
             else:
-                self.parseerror('Undefined symbol ' + repr(self.sym['txt']))
+                self.parseerror('Undefined label ' + repr(self.sym['txt']))
         elif self.sym['type'] in ['INTEGER', 'FLOAT']:
             ret = self.sym['val']
             self.__next__()
@@ -1114,7 +1114,7 @@ class fv1parse(object):
         # strip the modifier and check for re-definition
         arg1 = arg1.rstrip('^#')
         if arg1 in self.symtbl:
-            self.parsewarn('Symbol ' + repr(arg1) + ' re-defined')
+            self.parsewarn('Label ' + repr(arg1) + ' re-defined')
 
         # then fetch the second argument
         arg2 = self.__expression__()
@@ -1124,7 +1124,7 @@ class fv1parse(object):
             if arg2 in self.symtbl:
                 arg2 = self.symtbl[arg2]
             else:
-                self.parseerror('Name {} undefined'.format(arg2))
+                self.parseerror('Label {} undefined'.format(arg2))
         if typ == 'MEM':
             # check memory and assign the extra labels
             baseval = self.delaymem
