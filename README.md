@@ -10,17 +10,17 @@ assembler in standard Python, for developers who are unable or unwilling
 to use the Spin provided IDE.
 
 
-## REQUIREMENTS:
+## Requirements
 
 - Python \>= 3
 
 
-## INSTALLATION:
+## Installation
 
 	$ pip3 install asfv1
 
 
-## USAGE:
+## Usage
 
 	$ asfv1 input.asm output.hex
 
@@ -47,13 +47,14 @@ to use the Spin provided IDE.
 	  -b, --binary          write binary output instead of hex
 
 
-## DESCRIPTION:
+## Description
 
 asfv1 assembles a Spin Fv-1 DSP program into machine code, ready for
 uploading to the device. It is based on information in the FV-1
-datasheet and AN0001 "Basics of the LFOs in the FV-1".
+datasheet and AN0001 "Basics of the LFOs in the FV-1", and is mostly 
+compatible with SpinASM (.spn) assembly. 
 
-## FEATURES:
+## Features
 
 All instruction operands are treated as numeric expressions
 and can be entered directly as an unsigned integer or, where
@@ -73,29 +74,10 @@ otherwise the value will be interpreted as an integer:
 
 In SpinASM, entries -1, 1, -2 and 2 are interpreted
 differently depending on how they are used. To get the Spin-like
-behaviour, use option -s (--spinreals).
+behaviour in asfv1, use option -s (--spinreals).
 
-Operand expressions support the following arithmetic and
-bitwise operators, listed in order of precedence from lowest
-to highest:
-
-	|	bitwise or
-	^	bitwise xor
-	&	bitwise and
-	<<	bitwise left shift
-	>>	bitwise right shift
-	+	add
-	-	subtract
-	*	multiply
-	//	integer divide
-	/	divide
-	-	unary minus
-	+	unary plus
-	~	unary negate (! in spinasm)
-	**	power
-	( )	parentheses
-
-Expressions can be used in any operand, as long as the
+Operand expressions support arbitrary arithmetic and
+bitwise operators, and may be used in any operand, as long as the
 final value is a constant integer or real number appropriate
 for the instruction. Invalid combinations of real numbers and
 integer values will generate an error eg:
@@ -134,12 +116,13 @@ set to binary with -b (--binary), the program number option is
 ignored.
 
 
-## PROGRAM SYNTAX:
+## Program Syntax
 
-An FV-1 assembly program is made up of zero to 128 instructions with 
+An FV-1 assembly program recogised by asfv1 closely resembles the
+SpinIDE (.spn) format. It is made up of zero to 128 instructions with 
 optional target labels and any number of optional comments, 
-or assembly directives. All mnemonics, labels, jump targets, and
-reserved names are matched case-insensitively. Each of the input
+and assembly directives. Text names and symbols are matched
+case-insensitively. Each of the input
 instructions is assembled into a single 32 bit machine code for
 the FV-1. If less than 128 asssembly instructions are input,
 the unallocated program space is padded with 'NOP' instructions.
@@ -160,7 +143,23 @@ Example:
 		rda	delay#,0.5	; read from delay end
 		wrax	output,0.0	; write to output
 
-### Comments 
+When assembled with asfv1, the resulting machine code contains
+9 instructions and padding with NOP instructions:
+
+	$ ./asfv1.py -b -n example.asm example.bin
+	FV-1 Assembler v1.2.0
+	info: Reading input from example.asm
+	info: Read 9 instructions from input
+	info: Writing binary output to example.bin
+	$ hd example.bin 
+	00000000  80 40 00 11 00 00 02 05  00 00 04 06 00 00 02 85  |.@..............|
+	00000010  00 00 04 0a 00 00 00 02  20 04 cc c0 20 09 99 80  |........ ... ...|
+	00000020  00 00 02 c6 00 00 00 11  00 00 00 11 00 00 00 11  |................|
+	00000030  00 00 00 11 00 00 00 11  00 00 00 11 00 00 00 11  |................|
+	*
+	00000200
+
+## Comments 
 
 A semicolon character ';' starts comment text. the assembler will
 ignore all text including the ';' up to the end of a line. Examples:
@@ -269,17 +268,62 @@ in a parser error:
 
 	parse error: Label ERROR already assigned on line ...
 
-
 ### Instructions
+
+Each instruction is represented by a mnemonic label followed by zero 
+or more operand expressions separated by commas.
+
+	MNEMONIC	OPERAND,OPERAND,...
+
+Each operand must evaluate to a single constant numeric
+value. The sizes and types are specific to each instruction
+(see Instruction Reference below).
 
 ### Operand Expressions
 
-Each instruction is represented by a mnemonic followed by zero 
-or more operands separated by commas. Each operand is an expression
-that follows the Python expression syntax very closely. Formally, a valid
-instruction matches the following grammar:
+Operand expressions are arithmetic or bitwise operations,
+evaluated on numbers or labels in-place by the parser
+with similar precedence and ordering as the Python interpreter.
+Expressions can be any valid combination of the following operators,
+ordered from lowest precedence (least binding) to highest
+(most binding):
 
-	instruction ::= mnemonic [op_expr (',' op_expr)*]
+	|	bitwise or
+	^	bitwise xor
+	&	bitwise and
+	<<	bitwise left shift
+	>>	bitwise right shift
+	+	add
+	-	subtract
+	*	multiply
+	//	integer divide
+	/	divide
+	-	unary minus
+	+	unary plus
+	~	unary negate (! in spinasm)
+	**	power
+	( )	parentheses
+
+Combined with pre-defined symbols, delays and numeric
+literals. The following literal formats are recognised:
+
+	123		decimal integer 291
+	0x123		hexadecimal integer 291
+	$123		hexadecimal integer 291
+	0b1010_1111	binary integer 175
+	%0101_1111	binary integer 175 (_ optional)
+	1.124		floating point number 1.124
+	1.124e-3	floating point number 0.001124
+
+The final evaluated value of each expression will be either an
+integer value, which is used for the instruction operand
+unchanged or a floating point value which is later converted
+to the closest fixed-point integer of the required size
+(see Fixed Point Conversion below).
+
+More formally, a valid operand expression matches the
+following grammar:
+
 	op_expr ::= xor_expr | op_expr "|" xor_expr
 	or_expr ::= and_expr | xor_expr "^" and_expr
 	and_expr ::= shift_expr | and_expr "&" shift_expr
@@ -290,9 +334,137 @@ instruction matches the following grammar:
 	power ::= atom ["**" u_expr]
 	atom ::= identifier | literal | "(" op_expr ")"
 
-## INSTRUCTION REFERENCE:
+## Fixed Point Conversion
 
-## LINKS:
+The FV-1 arithmetic processor operates on fixed-point numbers
+which are converted by the assembler from an intermediate
+floating-point value to the final unsigned integer. In asfv1, the
+conversion is performed for all types by computing the
+multiplication:
+
+	fixed = int(round(floating * REFERENCE))
+
+Where REFERENCE is the equivalent integer value of +1.0 in the 
+desired number format, and floating is the saturated intermediate
+floating-point value. The following table lists the properties
+of each of the FV-1 number formats. 
+
+	Name	Bits	Refval	Minval	Maxval
+	S4_6	11	64	-16.0	15.984375
+	S1_9	11	512	-2.0	1.998046875
+	S_10	11	1024	-1.0	0.9990234375
+	S1_14	16	16384	-2.0	1.99993896484375
+	S_15	16	32768	-1.0	0.999969482421875
+	S_23	24	8388608	-1.0	0.9999998807907104
+
+## Instruction Reference
+
+### rda	ADDRESS, MULTIPLIER
+
+Multiply and accumulate a sample from the delay memory.
+
+Operands:
+
+	ADDRESS: Unsigned 15bit integer Delay address (0 - 32767)
+	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
+	OPCODE: 0b00000
+
+Assembly:
+	
+	MULTIPLIER<<21 | ADDRESS<<5 | 0b00000
+
+Action:
+
+	ACC <- ACC + MULTIPLIER * delay[ADDRESS]
+	PACC <- ACC
+	LR <- delay[ADDRESS]
+
+Example:	
+
+		rda	pdel^+324,0.1	; add 0.1 * delay[pdel^+324] to ACC
+		rda	pdel#,0.3	; add 0.3 * delay[pdel#] to ACC
+
+### rmpa MULTIPLIER
+
+Multiply and accumulate a sample from the delay memory, using
+ADDR_PTR as the delay address. Note: ADDR_PTR is left aligned
+into a signed 24 bit value.
+
+Operands:
+
+	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
+	OPCODE: 0b00001
+
+Assembly:
+	
+	MULTIPLIER<<21 | 0b00001
+
+Action:
+
+	ACC <- ACC + MULTIPLIER * delay[ADDR_PTR/256]
+	PACC <- ACC
+	LR <- delay[ADDR_PTR/256]
+
+Example:	
+
+		or	1234<<8		; load 1234*256 into ACC
+		wrax	ADDR_PTR,0.0	; save to ADDR_PTR and clear ACC
+		rmpa	0.25		; add 0.25 * delay[1234] to ACC
+
+### wra	ADDRESS, MULTIPLIER
+
+Write ACC to delay memory and scale by multiplier.
+
+Operands:
+
+	ADDRESS: Unsigned 15bit integer Delay address (0 - 32767)
+	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
+	OPCODE: 0b00010
+
+Assembly:
+	
+	MULTIPLIER<<21 | ADDRESS<<5 | 0b00010
+
+Action:
+
+	delay[ADDRESS] <- ACC
+	PACC <- ACC
+	ACC <- MULTIPLIER * ACC
+
+Example:	
+
+		wra	pdel^+324,0.25	; write ACC to delay[pdel^+324] 0.25*ACC
+		wra	pdel#,0.0	; write ACC to delay[pdel#] clear ACC
+
+### wrap MULTIPLIER
+
+Write ACC to delay memory, using
+ADDR_PTR as the delay address. Note: ADDR_PTR is left aligned
+into a signed 24 bit value.
+
+Operands:
+
+	MULTIPLIER: Real S1_9 | Unsigned 11bit integer
+	OPCODE: 0b00011
+
+Assembly:
+	
+	MULTIPLIER<<21 | 0b00011
+
+Action:
+
+	delay[ADDR_PTR/256] <- ACC
+	PACC <- ACC
+	ACC <- MULTIPLIER * ACC
+
+Example:	
+
+		or	0x1000<<8	; load 0x100000 into ACC
+		wrax	ADDR_PTR,0.0	; save to ADDR_PTR and clear ACC
+		ldax	ADCL		; read from left input
+		wrap	0.3		; write ACC to delay[0x1000] 0.3*ACC
+
+## Links
 
 - FV-1 disassembler: <https://github.com/ndf-zz/disfv1>
 - FV-1 test suite: <https://github.com/ndf-zz/fv1testing>
