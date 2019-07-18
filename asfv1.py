@@ -560,48 +560,6 @@ class fv1parse(object):
             self.parseerror('Invalid SIN LFO frequency ' + xtra + repr(freq))
         return freq
 
-    def __lfo_rampfreq__(self, mnemonic=''):
-        """Fetch a ramp LFO coefficient value."""
-        xtra = ''
-        if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
-        freq = self.__expression__()
-        if type(freq) is int:
-            if freq < -16384 or freq > 32767:
-                if self.doclamp:
-                    if freq < -16384:
-                        freq = -16384
-                    elif freq > 32767:
-                        freq = 32767
-                    self.parsewarn('RMP LFO coefficient clamped '
-                                   + xtra + repr(freq))
-                else:
-                    self.parseerror('Invalid RMP LFO coefficient '
-                                   + xtra + repr(freq))
-        else:
-            self.parseerror('Invalid RMP LFO coefficient '+xtra+repr(freq))
-        return freq
-
-    def __lfo_sinamp__(self, mnemonic=''):
-        """Fetch a SIN LFO amplitude value."""
-        xtra = ''
-        if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
-        amp = self.__expression__()
-        if type(amp) is int:
-            if amp < 0 or amp > M15:
-                if self.doclamp:
-                    if amp < 0:
-                        amp = 0
-                    elif amp > M15:
-                        amp = M15
-                    self.parsewarn('SIN LFO amplitude clamped '+xtra+hex(amp))
-                else:
-                    self.parseerror('Invalid SIN LFO amplitude '+xtra+hex(amp))
-        else:
-            self.parseerror('Invalid SIN LFO amplitude ' +xtra+ repr(amp))
-        return amp
-
     def __lfo_rampamp__(self, mnemonic=''):
         """Fetch a RMP LFO amplitude value."""
         xtra = ''
@@ -654,7 +612,7 @@ class fv1parse(object):
                                 'txt': optxt,
                                 'stxt': optxt,
                                 'val': 0x0}
-                elif stxt in ['|','^','&','+','-','~','(',')']:
+                elif stxt in ['|','^','&','+','-','~','!','(',')','INT']:
                     self.sym = {'type': 'OPERATOR',
                                 'txt': self.linebuf.pop(0),
                                 'stxt': stxt,
@@ -848,14 +806,14 @@ class fv1parse(object):
             self.__accept__('ARGSEP',opmsg)
             freq = self.__lfo_sinfreq__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
-            amp = self.__lfo_sinamp__(mnemonic)
+            amp = self.__s_15__(mnemonic)
             self.pl.append({'cmd':[mnemonic, lfo, freq, amp],
                             'addr':self.icnt})
             self.icnt += 1
         elif mnemonic == 'WLDR':
             lfo = self.__lfo__()|0x02
             self.__accept__('ARGSEP',opmsg)
-            freq = self.__lfo_rampfreq__(mnemonic)
+            freq = self.__s_15__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
             amp = self.__lfo_rampamp__(mnemonic)
             self.pl.append({'cmd':[mnemonic, lfo, freq, amp],
@@ -941,16 +899,29 @@ class fv1parse(object):
         """Parse an operand expression."""
         acc = None
         try:
-            acc = self.__xor_expr__()
-            while self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '|':
+            intcast = False
+            if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == 'INT':
+                intcast = True
                 self.__next__()
-                rarg = self.__xor_expr__()
-                if type(acc) is int and type(rarg) is int:
-                    acc |= rarg
-                else:
-                    self.parseerror('Invalid types for bitwise or (|)')
+            acc = self.__or_expr__()
+            if intcast:
+                if type(acc) is not int:
+                    acc = int(round(acc))
         except Exception as e:
             self.parseerror(str(e))
+        return acc
+
+
+    def __or_expr__(self):
+        """Parse an or expression."""
+        acc = self.__xor_expr__()
+        while self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '|':
+            self.__next__()
+            rarg = self.__xor_expr__()
+            if type(acc) is int and type(rarg) is int:
+                acc |= rarg
+            else:
+                self.parseerror('Invalid types for bitwise or (|)')
         return acc
 
     def __xor_expr__(self):
