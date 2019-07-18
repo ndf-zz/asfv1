@@ -805,23 +805,25 @@ Example:
 		ldax	POT0		; load POT0
 		not			; invert all bits
 
-### skp	CONDITON,OFFSET
+### skp	CONDITONS,OFFSET
 
 Skip over OFFSET instructions if all flagged CONDITIONS are met.
 
-	CONDITION:	Unsigned 5bit flags
+	CONDITIONS:	Unsigned 5bit flags
 	OFFSET:		Unsigned 6bit integer OR target label
-	Assembly:	CONDITION<<27 | OFFSET<<21 | 0b10001
+	Assembly:	CONDITIONS<<27 | OFFSET<<21 | 0b10001
 
 Condition Flags:
 	
 	NEG	0x01	ACC is less than zero
 	GEZ	0x02	ACC is greater than or equal to zero
-	ZRO	0x03	ACC is zero
-	ZRC	0x04	sign of ACC and PACC differ
-	RUN	0x05	Program has completed at least one iteration
+	ZRO	0x04	ACC is zero
+	ZRC	0x08	sign of ACC and PACC differ
+	RUN	0x10	Program has completed at least one iteration
 
 Notes:
+
+ - if no condition flags are set, the skip is always performed.
 
  - if OFFSET starts with a label, it is assumed to be a jump target,
    which should be present later in the program. An attempt to skip
@@ -841,8 +843,7 @@ Notes:
 	
 		parse error: Offset from SKP to 'TARGET' (0x44) too large on line ...
 
- - To force evaluation of an expression in order to compute an offset,
-   wrap the expression in parentheses:
+ - To force computation of an offset, wrap the expression in parentheses:
 
 		EQU	three	3
 			skp	0,three+3	; error - three is not a target
@@ -874,6 +875,87 @@ Example:
 
 		nop nop nop nop		; reserve 4 instruction slots
 
+### wlds LFO, FREQUENCY, AMPLITUDE
+
+Adjust SIN LFO with coefficients FREQUENCY and AMPLITUDE.
+
+	LFO:		1bit integer (SIN0 or SIN1)
+	FREQUENCY:	Unsigned 9bit integer
+	AMPLITUDE:	Unsigned 15bit integer
+	Assembly:	LFO<<29 | FREQUENCY<<20 | AMPLITUDE<<5 | 0b10010
+
+Notes:
+
+ - FREQUENCY coefficient is related to LFO rate (f) in Hz
+   by the following:
+
+	FREQUENCY = int (2**18 * pi * f / Fs)
+	f = FREQUENCY * Fs / (2**18 * pi)
+	
+   Where Fs is the sample rate. For a 32768Hz crystal, the SIN 
+   LFO ranges from 0Hz up to about 20Hz.
+
+ - AMPLITUDE coefficient specifies the peak-to-peak amplitude
+   of the LFO in delay samples.
+
+ - The frequency and amplitude of SIN LFOs can also be set
+   by writing to registers: SIN0_RATE, SIN0_RANGE, SIN1_RATE,
+   and SIN1_RANGE. 
+
+Example:	
+
+		wlds	SIN0,511,1	; Set SIN0 to 20Hz, amplitude 1 sample
+		wlds	SIN1,1,0x7fff	; Set SIN1 to 0.04Hz and full delay length
+		or	0.5
+		wrax	SIN0_RATE,0.0	; Set SIN0 to ~10Hz
+		ldax	POT0
+		wrax	SIN0_RANGE,0.0	; Set SIN0 range from POT0
+
+### wldr LFO, FREQUENCY, AMPLITUDE
+
+Adjust RMP LFO with coefficients FREQUENCY and AMPLITUDE.
+
+	LFO:		2bit integer (RMP0 or RMP1)
+	FREQUENCY:	Signed 16bit integer (-16384 to 32767)
+	AMPLITUDE:	2bit integer (0=4096, 1=2048, 2=1024, 3=512)
+	Assembly:	LFO<<29 | FREQUENCY<<20 | AMPLITUDE<<5 | 0b10010
+
+Notes:
+
+ - AMPLITUDE may also be set by entering one of the specific values:
+   4096, 2048, 1024 or 512.
+
+ - The frequency and amplitude of RMP LFOs can also be set
+   by writing to registers: RMP0_RATE, RMP0_RANGE, RMP1_RATE,
+   and RMP1_RANGE. 
+
+Example:	
+
+		wldr	RMP0,32767,0	; Set RMP0 to max rate, 4096 amplitude
+		wldr	RMP1,-1923,512	; Set RMP1 to 512 and a negative frequency
+
+### jam LFO
+
+Reset specified LFO to start.
+
+	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
+	Assembly:	LFO<<6 | 0b10011
+
+Example:	
+
+		jam	SIN0		; reset SIN0 lfo
+
+### raw U32
+
+Copy the unsigned 32 bit value in U32 directly to the output program.
+
+	U32:		Unsigned 32bit integer
+	Assembly:	U32
+
+Example:
+		raw	0x4000000f	; manually assemble or 0.5
+		skp	0,1
+		raw	0xa899fbda	; place a signature in the binary
 ## Links
 
 - FV-1 disassembler: <https://github.com/ndf-zz/disfv1>
