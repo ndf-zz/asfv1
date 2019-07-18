@@ -283,12 +283,13 @@ value. The sizes and types are specific to each instruction
 
 Operand expressions are arithmetic or bitwise operations,
 evaluated in-place by the parser. Operators have similar
-precedence and ordering as in the Python interpreter.
+precedence and ordering to the Python interpreter.
 Expressions can be any valid combination
 of labels, numbers and the following operators,
 ordered from lowest precedence (least binding) to highest
 (most binding):
 
+	int	unary typecast (round float value to nearest integer)
 	|	bitwise or
 	^	bitwise xor
 	&	bitwise and
@@ -305,8 +306,7 @@ ordered from lowest precedence (least binding) to highest
 	**	power
 	( )	parentheses
 
-In addition to labels, the following numeric literal
-formats are recognised:
+The following numeric literal formats are recognised:
 
 	123		decimal integer 123
 	0x123		hexadecimal integer 291
@@ -322,11 +322,12 @@ unchanged or a floating point value which is later converted
 to the closest fixed-point integer of the required size
 (see Fixed Point Conversion below).
 
-More formally, a valid operand expression (op_expr) matches the
+More formally, a valid operand expression matches the
 following grammar:
 
-	op_expr ::= xor_expr | op_expr "|" xor_expr
-	or_expr ::= and_expr | xor_expr "^" and_expr
+	expression ::= ["int"] or_expr
+	or_expr ::= xor_expr | or_expr "|" xor_expr
+	xor_expr ::= and_expr | xor_expr "^" and_expr
 	and_expr ::= shift_expr | and_expr "&" shift_expr
 	shift_expr ::= a_expr | shift_expr "<<" a_expr | shift_expr ">>" a_expr
 	a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
@@ -408,7 +409,7 @@ The following text labels are pre-defined by asfv1.
 
 Multiply and accumulate a sample from delay memory.
 
-	ADDRESS:	Unsigned 15bit integer delay address
+	ADDRESS:	Real S_15 or Unsigned 15bit integer delay address
 	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
 	Assembly:	MULTIPLIER<<21 | ADDRESS<<5 | 0b00000
 
@@ -422,13 +423,14 @@ Example:
 
 		rda	pdel^+324,0.1	; add 0.1 * delay[pdel^+324] to ACC
 		rda	pdel#,0.3	; add 0.3 * delay[pdel#] to ACC
+		rda	0.3,0.5		; add 0.5 * delay[0x2666] to ACC
 
 ### rmpa MULTIPLIER
 
 Multiply and accumulate a sample from the delay memory, using
 the contents of ADDR_PTR as the delay address.
 
-	MULTIPLIER:	Real S1_9 | Unsigned 11bit integer
+	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
 	Assembly:	MULTIPLIER<<21 | 0b00001
 
 Action:
@@ -441,7 +443,7 @@ Notes:
 
    - 15 bit delay addresses in ADDR_PTR are left-aligned 8 bits,
      they can be accessed using the real value 0->0.9999 or
-     directly by multiplying the desired delay address by 256.
+     directly by multiplying the desired integer delay address by 256.
 
 Example:	
 
@@ -457,7 +459,7 @@ Example:
 
 Write ACC to delay memory and scale by multiplier.
 
-	ADDRESS:	Unsigned 15bit integer delay address
+	ADDRESS:	Real S_15 or Unsigned 15bit integer delay address
 	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
 	Assembly:	MULTIPLIER<<21 | ADDRESS<<5 | 0b00010
 
@@ -528,7 +530,7 @@ Example:
 
 		rdfx	ADCL,0.0	; transfer ADCL content to ACC
 		rdfx	REG0,0.3	; average using temp reg
-		wrlx	REG0,0.0	; infinite shelft LPF
+		wrlx	REG0,0.0	; infinite shelf LPF
 
 ### ldax REGISTER
 
@@ -810,7 +812,7 @@ Example:
 Skip over OFFSET instructions if all flagged CONDITIONS are met.
 
 	CONDITIONS:	Unsigned 5bit flags
-	OFFSET:		Unsigned 6bit integer OR target label
+	OFFSET:		Unsigned 6bit integer or target label
 	Assembly:	CONDITIONS<<27 | OFFSET<<21 | 0b10001
 
 Condition Flags:
@@ -843,7 +845,7 @@ Notes:
 	
 		parse error: Offset from SKP to 'TARGET' (0x44) too large on line ...
 
- - To force computation of an offset, wrap the expression in parentheses:
+ - To force computation of an offset, wrap an expression in parentheses:
 
 		EQU	three	3
 			skp	0,three+3	; error - three is not a target
@@ -881,7 +883,7 @@ Adjust SIN LFO with coefficients FREQUENCY and AMPLITUDE.
 
 	LFO:		1bit integer (SIN0 or SIN1)
 	FREQUENCY:	Unsigned 9bit integer
-	AMPLITUDE:	Unsigned 15bit integer
+	AMPLITUDE:	Real S_15 or Unsigned 15bit integer
 	Assembly:	LFO<<29 | FREQUENCY<<20 | AMPLITUDE<<5 | 0b10010
 
 Notes:
@@ -896,7 +898,8 @@ Notes:
    LFO ranges from 0Hz up to about 20Hz.
 
  - AMPLITUDE coefficient specifies the peak-to-peak amplitude
-   of the LFO in delay samples.
+   of the LFO in delay samples, and may be entered using a real
+   value. Negative amplitudes work as with SINx_RANGE register.
 
  - The frequency and amplitude of SIN LFOs can also be set
    by writing to registers: SIN0_RATE, SIN0_RANGE, SIN1_RATE,
@@ -916,14 +919,17 @@ Example:
 Adjust RMP LFO with coefficients FREQUENCY and AMPLITUDE.
 
 	LFO:		2bit integer (RMP0 or RMP1)
-	FREQUENCY:	Signed 16bit integer (-16384 to 32767)
+	FREQUENCY:	Real S_15 or Signed 16bit integer
 	AMPLITUDE:	2bit integer (0=4096, 1=2048, 2=1024, 3=512)
 	Assembly:	LFO<<29 | FREQUENCY<<20 | AMPLITUDE<<5 | 0b10010
 
 Notes:
 
- - AMPLITUDE may also be set by entering one of the specific values:
-   4096, 2048, 1024 or 512.
+ - AMPLITUDE may also be set by entering one of the specific
+   integer values: 4096, 2048, 1024 or 512.
+
+ - FREQUENCY may be entered using a real value, which has the same
+   interpretation as the RMPx_RATE register.
 
  - The frequency and amplitude of RMP LFOs can also be set
    by writing to registers: RMP0_RATE, RMP0_RANGE, RMP1_RATE,
@@ -945,6 +951,89 @@ Example:
 
 		jam	SIN0		; reset SIN0 lfo
 
+### cho rda, LFO, FLAGS, ADDRESS
+
+Read from delay memory at ADDRESS + offset (LFO) according to
+FLAGS, multiply the result by coeff (LFO) and save value to ACC.
+
+	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
+	FLAGS:		6bit integer flags
+	ADDRESS:	Real S_15 or Unsigned 16bit integer
+	Assembly:	FLAGS<<24 | LFO<<21 | ADDRESS<<5 | 0x10100
+
+Action:
+
+	ACC <- coeff (LFO) * delay[ADDRESS + offset (LFO)]
+	PACC <- ACC
+
+Flags:
+
+	COS	0x01	use cosine output of SIN LFO 
+	REG	0x02	'register' LFO state (see note below)
+	COMPC	0x04	complement coefficient: 1 - coeff (LFO) 
+	COMPA	0x08	complement address offset: 1 - offset (LFO)
+	RPTR2	0x10	use second, half-off ramp 
+	NA	0x20	offset (LFO) = 0.0, coeff (LFO) = crossfade coefficient
+
+Notes:
+
+ - offset (LFO) is the coarse LFO delay offset, based on flag settings
+   to a whole sample
+
+ - coeff (LFO) is an interpolation coefficient, based on flag settings
+   and the LFO fine position between whole samples
+
+ - the first use of cho in a program with any LFO must include the
+   REG flag in order to 'register' the LFO state and get valid data
+
+ - flags that are not relevant for the chosen LFO or cho mode are ignored
+
+Example:
+
+		cho	rda,SIN0,REG|COMPC,20	; load first half of interpolation
+		cho	rda,SIN0,0,21		; add second half of interpolation
+
+### cho sof, LFO, FLAGS, OFFSET
+
+Multiply ACC by coeff (LFO), and add OFFSET.
+
+	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
+	FLAGS:		6bit integer flags (see cho rda)
+	OFFSET:		Real S_15 or Unsigned 16bit integer
+	Assembly:	0x2<<30 | FLAGS<<24 | LFO<<21 | OFFSET<<5 | 0x10100
+
+Action:
+
+	ACC <- coeff (LFO) * ACC + OFFSET
+	PACC <- ACC
+
+Example:
+
+		ldax	ADCL			; load AD
+		cho	sof,RMP0,REG|COMPC|NA,0	; tremolo - scale ACC by RMP0 xfade
+
+### cho rdal, LFO [, FLAGS]
+
+Read the specified LFO address offset value into ACC
+according to optional FLAGS. If FLAGS are omitted, a default
+value of REG (0x2) is assembled.
+
+	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
+	FLAGS:		6bit integer flags (see cho rda)
+	Assembly:	0x3<<30 | FLAGS<<24 | LFO<<21 | 0x10100
+
+Action:
+
+	ACC <- offset (LFO)
+	PACC <- ACC
+
+Example:
+
+		cho	rdal,SIN0,REG	; load the SIN value and 'register' LFO
+		wrax	DACL,0.0	; output to left channel
+		cho	rdal,SIN0,COS	; load the COS value
+		wrax	DACR,0.0	; output to right channel
+
 ### raw U32
 
 Copy the unsigned 32 bit value in U32 directly to the output program.
@@ -954,7 +1043,7 @@ Copy the unsigned 32 bit value in U32 directly to the output program.
 
 Example:
 		raw	0x4000000f	; manually assemble or 0.5
-		skp	0,1
+		skp	0,1		; skip over the next instruction
 		raw	0xa899fbda	; place a signature in the binary
 ## Links
 
