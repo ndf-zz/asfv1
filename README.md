@@ -124,7 +124,9 @@ optional targets, labels, comments and assembly directives.
 Instruction mnemonics, targets and labels are matched case-insensitively.
 Each of the input instructions is assembled into a single 32 bit
 machine code. If less than 128 asssembly instructions are input,
-the unallocated program space is padded with 'NOP' instructions.
+the unallocated program space is padded with 'NOP' instructions
+(0x00000011).
+
 Example:
 
 	; A complete, but useless FV-1 assembly program
@@ -230,6 +232,7 @@ or a parse error will be generated:
 	parse error: Memory 'INVALID' length 123.4556 not integer on line ...
 
 	MEM	third	32767//3	; valid due to integer divide
+	MEM	d0_13	int 0.13*32767	; valid due to explicit type cast
 
 The assembler keeps track of allocated memory, placing each new
 segment immediately after those previously defined. Each segment 
@@ -681,7 +684,7 @@ Action:
 Example:	
 
 		log	0.5,0.0		; 2*log2(a) = log2(a**2)
-		exp	1.0,0.0		; a = 2**(0.5 * log2(a**2))
+		exp	1.0,0.0		; a = 2**(0.5 * log2(a**2))	[square root]
 
 ### exp MULTIPLIER, OFFSET
 
@@ -700,7 +703,7 @@ Action:
 Example:	
 
 		log	1.0,4.0		; log2(16*a) = log2(16) + log2(a)
-		exp	1.0,0.0		; 16*a = 2**(4+log2(a))
+		exp	1.0,0.0		; 16*a = 2**(4+log2(a))	[x16 gain]
 
 ### sof MULTIPLIER, OFFSET
 
@@ -891,8 +894,8 @@ Notes:
  - FREQUENCY coefficient is related to LFO rate (f) in Hz
    by the following:
 
-	FREQUENCY = int (2**18 * pi * f / Fs)
-	f = FREQUENCY * Fs / (2**18 * pi)
+	FREQUENCY = int (2\*\*18 * pi * f / Fs)
+	f = FREQUENCY * Fs / (2\*\*18 * pi)
 	
    Where Fs is the sample rate. For a 32768Hz crystal, the SIN 
    LFO ranges from 0Hz up to about 20Hz.
@@ -1042,9 +1045,11 @@ Copy the unsigned 32 bit value in U32 directly to the output program.
 	Assembly:	U32
 
 Example:
-		raw	0x4000000f	; manually assemble or 0.5
+
+		raw	0x4000000f	; manually assemble "or 0.5"
 		skp	0,1		; skip over the next instruction
 		raw	0xa899fbda	; place a signature in the binary
+
 ## Links
 
 - FV-1 disassembler: <https://github.com/ndf-zz/disfv1>
