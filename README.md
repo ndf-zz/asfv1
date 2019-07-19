@@ -279,9 +279,36 @@ Use of an already defined label for a target will result in a parser error:
 ### Instructions
 
 An instruction is represented by a mnemonic text followed by zero 
-or more operand expressions separated by commas.
+or more operand expressions separated by commas:
 
-	MNEMONIC	OPERAND,OPERAND,...
+	rda	ADDRESS,MULTIPLIER	; multiply delay[ADDRESS] & accumulate
+	rmpa	MULTIPLER		; multiply delay[ADDR_PTR] & accumulate
+	wra	ADDRESS,MULTIPLIER	; write delay[ADDRESS] & multiply
+	wrap	MULTIPLIER		; write delay[ADDR_PTR], multiply & add LR
+	rdax	REGISTER,MULTIPLIER	; multiply (*REGISTER) & accumulate
+	rdfx	REGISTER,MULTIPLIER	; subtract (*REGISTER), multiply & add (*REGISTER)
+	ldax	REGISTER		; load (*REGISTER)
+	wrax	REGISTER,MULTIPLIER	; write (*REGISTER) & multiply
+	wrhx	REGISTER,MULTIPLIER	; write (*REGISTER) & highpass shelf
+	wrlx	REGISTER,MULTIPLIER	; write (*REGISTER) & lowpass shelf
+	maxx	REGISTER,MULTIPLIER	; load maximum of absolute values
+	absa				; load absolute value of ACC
+	mulx	REGISTER		; multiply by (*REGISTER)
+	log	MULTIPLIER,OFFSET	; log2(ACC), multiply & offset
+	exp	MULTIPLIER,OFFSET	; 2**(ACC), multiply & offset
+	sof	MULTIPLIER,OFFSET	; multiply & offset
+	and	VALUE			; bitwise AND
+	clr				; clear ACC
+	or	VALUE			; bitwise OR
+	xor	VALUE			; bitwise xor
+	not				; bitwise negation
+	skp	CONDITIONS,OFFSET	; skip offset instructions if all conditions met
+	nop				; no operation
+	wlds	LFO,FREQUENCY,AMPLITUDE	; ajdust SIN LFO
+	wldr	LFO,FREQUENCY,AMPLTUDE	; adjust RMP LFO
+	jam	LFO			; reset LFO
+	cho	TYPE,LFO,FLAGS,ADDRESS	; interpolated memory access
+	raw	U32			; insert U32 opcode
 
 Each operand must evaluate to a single constant numeric
 value. The sizes and types are specific to each instruction
@@ -339,9 +366,12 @@ following grammar:
 	m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
 	u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
 	power ::= atom ["**" u_expr]
-	atom ::= label | literal | "(" op_expr ")"
+	atom ::= label | literal | "(" expression ")"
 
-Where label is a text label, and literal is a number.
+Where label is a text label, and literal is a number. Expressions 
+are parsed and evaluated in-place by asfv1. With the exception
+of [jump targets](#jump-targets), all labels must be defined
+before they are referenced in an expression.
 
 ### Fixed Point Conversion
 
