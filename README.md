@@ -856,7 +856,7 @@ Example:
 		ldax	POT0		; load POT0
 		not			; invert all bits
 
-### skp CONDITIONS,OFFSET
+### skp CONDITIONS, OFFSET
 
 Skip over OFFSET instructions if all flagged CONDITIONS are met.
 
