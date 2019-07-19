@@ -300,15 +300,15 @@ or more operand expressions separated by commas:
 	and	VALUE			; bitwise AND
 	clr				; clear ACC
 	or	VALUE			; bitwise OR
-	xor	VALUE			; bitwise xor
+	xor	VALUE			; bitwise XOR
 	not				; bitwise negation
 	skp	CONDITIONS,OFFSET	; skip offset instructions if all conditions met
 	nop				; no operation
 	wlds	LFO,FREQUENCY,AMPLITUDE	; ajdust SIN LFO
-	wldr	LFO,FREQUENCY,AMPLTUDE	; adjust RMP LFO
+	wldr	LFO,FREQUENCY,AMPLITUDE	; adjust RMP LFO
 	jam	LFO			; reset LFO
-	cho	TYPE,LFO,FLAGS,ADDRESS	; interpolated memory access
-	raw	U32			; insert U32 opcode
+	[cho](#cho-type-lfo-flags-address)	TYPE,LFO,FLAGS,ADDRESS	; interpolated memory access
+	[raw](#raw-u32)	U32			; insert U32 opcode
 
 Each operand must evaluate to a single constant numeric
 value. The sizes and types are specific to each instruction
