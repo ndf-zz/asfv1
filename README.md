@@ -49,7 +49,7 @@ to use the Spin provided IDE.
 
 ## Description
 
-asfv1 assembles a Spin Fv-1 DSP program into machine code, ready for
+asfv1 assembles a Spin FV-1 DSP program into machine code, ready for
 uploading to the device. It is based on information in the FV-1
 datasheet and AN0001 "Basics of the LFOs in the FV-1", and is mostly 
 compatible with SpinASM (.spn) assembly. 
@@ -77,9 +77,7 @@ differently depending on how they are used. To get the Spin-like
 behaviour in asfv1, use option -s (--spinreals).
 
 Operand expressions support arbitrary arithmetic and
-bitwise operators, and may be used in any operand, as long as the
-final value is a constant integer or real number appropriate
-for the instruction. Invalid combinations of real numbers and
+bitwise operators. Invalid combinations of real numbers and
 integer values will generate an error eg:
 
 	parse error: Invalid types for bitwise or (|) on line ...
@@ -118,12 +116,15 @@ ignored.
 
 ## Program Syntax
 
-An FV-1 assembly program recognised by asfv1 closely resembles the
-SpinIDE (.spn) format. It is made up of zero to 128 instructions with 
-optional targets, labels, comments and assembly directives.
-Instruction mnemonics, targets and labels are matched case-insensitively.
+An FV-1 assembly program recognised by asfv1 closely resembles
+the SpinIDE (.spn) format. It is made up of zero to 128
+[instructions](#instructions) with optional
+[targets](#jump-targets), [labels](#label-assignment),
+[comments](#comments) and [assembly directives](#memory-allocation).
+Instruction mnemonics, targets and labels are
+matched case-insensitively.
 Each of the input instructions is assembled into a single 32 bit
-machine code. If less than 128 asssembly instructions are input,
+machine code. If less than 128 assembly instructions are input,
 the unallocated program space is padded with 'NOP' instructions
 (0x00000011).
 
@@ -134,7 +135,7 @@ Example:
 	EQU	input	ADCL		; read input from ADCL
 	EQU	output	DACL		; write output to DACL
 	EQU	vol	REG0		; use REG0 for volume
-	start:	skp	run,main	; skip to main after first sample
+	start:	skp	RUN,main	; skip to main after first sample
 		ldax	POT0		; read from POT0
 		wrax	vol,0.0		; write volume to register
 	main:	ldax	input		; read from input
@@ -175,17 +176,20 @@ ignore all text including the ';' up to the end of a line. Examples:
 	EQU	LABEL	EXPRESSION
 
 Directive 'EQU' assigns the constant value resulting from the
-evaluation of 'EXPRESSION' (see below) to the text label 'LABEL'.
+evaluation of 'EXPRESSION' (see
+[Operand Expressions](#operand-expressions)
+below) to the text label 'LABEL'.
 LABEL must begin with one alphabetic character in the set A-Z,a-z
 and can contain any number of alphanumeric characters plus underscore.
 EXPRESSION can contain any previously assigned labels, including
-those pre-defined by the assembler (see Pre-defined Labels below). For
-compatability with SpinASM, the order of 'EQU' and 'LABEL'
+those pre-defined by the assembler (see
+[Pre-defined Labels](#pre-defined-labels) below). For
+compatibility with SpinASM, the order of 'EQU' and 'LABEL'
 may be swapped. Examples:
 
 	EQU	input	ADCL		; assign ADCL (0x14) to 'input'
 	EQU	ratio	3/7		; assign the value 3/7 to 'ratio'
-	inve	EQU	1/ratio		; assign the invese of ratio to 'inve'
+	inve	EQU	1/ratio		; assign the inverse of ratio to 'inve'
 
 EQU does not generate any code in the program, it merely reserves
 the name for subsequent use. The parser evaluates all expressions
@@ -236,15 +240,16 @@ or a parse error will be generated:
 
 The assembler keeps track of allocated memory, placing each new
 segment immediately after those previously defined. Each segment 
-with a delay of LENGTH, will consume LENGTH+1 samples of memory and
-an attempt to use more than the available space will cause a parse error:
+with a delay of LENGTH, will consume LENGTH+1 samples of memory.
+An attempt to use more than the available space will trigger
+a parse error:
 
 	MEM	long	0x7f00		; long:0 long#:0x7f00
 	MEM	short	0x00ff		; short:0x7f01 short#:0x8000 (error)
 
 	parse error: Delay exhausted: requested 255 exceeds 254 available on line ...
 
-The caret charater '^' is also used as an operator in expressions for
+The caret character '^' is also used as an operator in expressions for
 bitwise XOR, so expressions which reference a delay may
 need to be explicitly parenthesised if used with '^':
 
@@ -280,14 +285,11 @@ or more operand expressions separated by commas.
 
 Each operand must evaluate to a single constant numeric
 value. The sizes and types are specific to each instruction
-(see Instruction Reference below).
+(see [Instruction Reference](#instruction-reference) below).
 
 ### Operand Expressions
 
-Operand expressions are arithmetic or bitwise operations,
-evaluated in-place by the parser. Operators have similar
-precedence and ordering to the Python interpreter.
-Expressions can be any valid combination
+Operand expressions are any valid combination
 of labels, numbers and the following operators,
 ordered from lowest precedence (least binding) to highest
 (most binding):
@@ -309,7 +311,7 @@ ordered from lowest precedence (least binding) to highest
 	**	power
 	( )	parentheses
 
-The following numeric literal formats are recognised:
+The following numeric entry formats are recognised:
 
 	123		decimal integer 123
 	0x123		hexadecimal integer 291
@@ -323,7 +325,7 @@ The final evaluated value of each expression will be either an
 integer value, which is used for the instruction operand
 unchanged or a floating point value which is later converted
 to the closest fixed-point integer of the required size
-(see Fixed Point Conversion below).
+(see [Fixed Point Conversion](#fixed-point-conversion) below).
 
 More formally, a valid operand expression matches the
 following grammar:
@@ -339,13 +341,14 @@ following grammar:
 	power ::= atom ["**" u_expr]
 	atom ::= label | literal | "(" op_expr ")"
 
-Where label is a text label, and literal is a numeric literal.
+Where label is a text label, and literal is a number.
 
 ### Fixed Point Conversion
 
 The FV-1 arithmetic processor operates on fixed-point numbers
 which are converted by the assembler from an intermediate
-floating-point value to the final unsigned integer. In asfv1, the
+floating-point value to an equivalent unsigned integer
+which is placed in the machine code. In asfv1, the
 conversion is performed for all types by computing the
 multiplication:
 
@@ -405,6 +408,17 @@ The following text labels are pre-defined by asfv1.
 	ZRO		0x04		SKP condition flag
 	GEZ		0x02		SKP condition flag
 	NEG		0x01		SKP condition flag
+
+Pre-defined labels may be re-defined within a source file, 
+however, the re-defined value only applies to label references
+*following* the assignment. Any re-definition will issue a
+warning message:
+
+		ldax	POT0	; load POT0 (0x10)
+	EQU	POT0	ADCL	; re-define POT0 to be 0x14
+		ldax	POT0	; load from ADCL (0x14)
+
+	warning: Label 'POT0' re-defined on line ...
 
 ## Instruction Reference
 
@@ -810,7 +824,7 @@ Example:
 		ldax	POT0		; load POT0
 		not			; invert all bits
 
-### skp	CONDITONS,OFFSET
+### skp	CONDITIONS,OFFSET
 
 Skip over OFFSET instructions if all flagged CONDITIONS are met.
 
