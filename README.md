@@ -284,9 +284,9 @@ or more operand expressions separated by commas:
 Mnemonic | Operands | Description
 --- | --- | ---
 [rda](#rda-address-multiplier)	|	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] & accumulate
-[rmpa](#rmpa-multiplier)	|	MULTIPLER		| multiply delay[ADDR_PTR] & accumulate
+[rmpa](#rmpa-multiplier)	|	MULTIPLER		| multiply delay[(*ADDR_PTR)] & accumulate
 [wra](#wra-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS] & multiply
-[wrap](#wrap-multiplier)	|	MULTIPLIER		| write delay[ADDR_PTR], multiply & add LR
+[wrap](#wrap-multiplier)	|	MULTIPLIER		| write delay[(*ADDR_PTR)], multiply & add LR
 [rdax](#rdax-register-multiplier)	|	REGISTER,MULTIPLIER	| multiply (*REGISTER) & accumulate
 [rdfx](#rdfx-register-multiplier)	|	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply & add (*REGISTER)
 [ldax](#ldax-register)	|	REGISTER		| load (*REGISTER)
@@ -484,9 +484,9 @@ the contents of ADDR_PTR as the delay address.
 
 Action:
 
-	ACC <- ACC + MULTIPLIER * delay[ADDR_PTR/256]
+	ACC <- ACC + MULTIPLIER * delay[(*ADDR_PTR)/256]
 	PACC <- ACC
-	LR <- delay[ADDR_PTR/256]
+	LR <- delay[(*ADDR_PTR)/256]
 
 Notes:
 
@@ -533,7 +533,7 @@ Multiply ACC, add to LR and save to ACC.
 
 Action:
 
-	delay[ADDR_PTR/256] <- ACC
+	delay[(*ADDR_PTR)/256] <- ACC
 	PACC <- ACC
 	ACC <- MULTIPLIER * ACC + LR
 
@@ -856,7 +856,7 @@ Example:
 		ldax	POT0		; load POT0
 		not			; invert all bits
 
-### skp	CONDITIONS,OFFSET
+### skp CONDITIONS,OFFSET
 
 Skip over OFFSET instructions if all flagged CONDITIONS are met.
 
