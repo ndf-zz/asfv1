@@ -283,33 +283,33 @@ or more operand expressions separated by commas:
 
 Mnemonic | Operands | Description
 --- | --- | ---
-rda	|	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] & accumulate
-rmpa	|	MULTIPLER		| multiply delay[ADDR_PTR] & accumulate
-wra	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS] & multiply
-wrap	|	MULTIPLIER		| write delay[ADDR_PTR], multiply & add LR
-rdax	|	REGISTER,MULTIPLIER	| multiply (*REGISTER) & accumulate
-rdfx	|	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply & add (*REGISTER)
-ldax	|	REGISTER		| load (*REGISTER)
-wrax	|	REGISTER,MULTIPLIER	| write (*REGISTER) & multiply
-wrhx	|	REGISTER,MULTIPLIER	| write (*REGISTER) & highpass shelf
-wrlx	|	REGISTER,MULTIPLIER	| write (*REGISTER) & lowpass shelf
-maxx	|	REGISTER,MULTIPLIER	| load maximum of absolute values
-absa	|				| load absolute value of ACC
-mulx	|	REGISTER		| multiply by (*REGISTER)
-log	|	MULTIPLIER,OFFSET	| log2(ACC), multiply & offset
-exp	|	MULTIPLIER,OFFSET	| 2\*\*(ACC), multiply & offset
-sof	|	MULTIPLIER,OFFSET	| multiply & offset
-and	|	VALUE			| bitwise AND
-clr	|				| clear ACC
-or	|	VALUE			| bitwise OR
-xor	|	VALUE			| bitwise XOR
-not	|				| bitwise negation
-skp	|	CONDITIONS,OFFSET	| skip offset instructions if all conditions met
-nop	|				| no operation
-wlds	|	LFO,FREQUENCY,AMPLITUDE	| ajdust SIN LFO
-wldr	|	LFO,FREQUENCY,AMPLITUDE	| adjust RMP LFO
-jam	|	LFO			| reset LFO
-[cho1](#cho-type-lfo-flags-address)	|	TYPE,LFO,FLAGS,ADDRESS	| interpolated memory access
+[rda](#rda-address-multiplier)	|	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] & accumulate
+[rmpa](#rmpa-multiplier)	|	MULTIPLER		| multiply delay[ADDR_PTR] & accumulate
+[wra](#wra-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS] & multiply
+[wrap](#wrap-multiplier)	|	MULTIPLIER		| write delay[ADDR_PTR], multiply & add LR
+[rdax](#rdax-register-multiplier)	|	REGISTER,MULTIPLIER	| multiply (*REGISTER) & accumulate
+[rdfx](#rdfx-register-multiplier)	|	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply & add (*REGISTER)
+[ldax](#ldax-register)	|	REGISTER		| load (*REGISTER)
+[wrax](#wrax-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) & multiply
+[wrhx](#wrhx-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) & highpass shelf
+[wrlx](#wrlx-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) & lowpass shelf
+[maxx](#maxx-register-multiplier)	|	REGISTER,MULTIPLIER	| load maximum of absolute values
+[absa](#absa)	|				| load absolute value of ACC
+[mulx](#mulx-register)	|	REGISTER		| multiply by (*REGISTER)
+[log](#log-multiplier-offset)	|	MULTIPLIER,OFFSET	| log2(ACC), multiply & offset
+[exp](#exp-multiplier-offset)	|	MULTIPLIER,OFFSET	| 2\*\*(ACC), multiply & offset
+[sof](#sof-multiplier-offset)	|	MULTIPLIER,OFFSET	| multiply & offset
+[and](#and-value)	|	VALUE			| bitwise AND
+[clr](#clr)	|				| clear ACC
+[or](#or-value)	|	VALUE			| bitwise OR
+[xor](#xor-value)	|	VALUE			| bitwise XOR
+[not](#not)	|				| bitwise negation
+[skp](#skp-conditions-offset)	|	CONDITIONS,OFFSET	| skip offset instructions if all conditions met
+[nop](#nop)	|				| no operation
+[wlds](#wlds-lfo-frequency-amplitude)	|	LFO,FREQUENCY,AMPLITUDE	| ajdust SIN LFO
+[wldr](#wldr-lfo-frequency-amplitude)	|	LFO,FREQUENCY,AMPLITUDE	| adjust RMP LFO
+[jam](#jam-lfo)	|	LFO			| reset LFO
+[cho](#cho-rda-lfo-flags-address)	|	TYPE,LFO,FLAGS,ADDRESS	| interpolated memory access
 [raw](#raw-u32)	|	U32			| insert U32 opcode
 
 Each operand must evaluate to a single constant numeric
