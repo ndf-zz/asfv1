@@ -61,20 +61,18 @@ and can be entered directly as an unsigned integer or, where
 reasonable, a real-valued equivalent. For example, the following
 entries all generate the same code:
 
-	or	-0.4335784912109375
-	or	-0x377f80&0xffffff
-	or	0xc88080
-	or	1<<23|2**22|1<<19|2**15|1<<7
+	or	-0.4335784912109375		; S_23 real value
+	or	-0x377f80&0xffffff		; signed 23bit int to unsigned 24 bit int
+	or	0xc88080			; unsigned 24bit int in hexadecimal
+	or	13140096			; unsigned 24bit int in decimal
+	or	1<<23|2**22|1<<19|2**15|1<<7	; unsigned 24bit int by bitwise or
+	or	0b110010001000000010000000	; unsigned 24bit int in binary
+	or	(int-0.4335784912109375*2**23)&0xffffff ; S_23 to unsigned 24bit conversion
 
-To enter a real value, the decimal portion is compulsory
-otherwise the value will be interpreted as an integer:
-
-	rdax	REG0,1		; multiply REG0 by 6.103515625e-05
-	rdax	REG0,1.0	; multiply REG0 by 1.0
-
-In SpinASM, entries -1, 1, -2 and 2 are interpreted
-differently depending on how they are used. To get the Spin-like
-behaviour in asfv1, use option -s (--spinreals).
+Integer values may be entered with a base prefix (0x, $, 0b, %) or
+a plain decimal number. Unlike SpinASM, entries -1, 1, -2 and 2 are
+always read as integer literals. To get the Spin-like behaviour
+in asfv1, use option -s (--spinreals).
 
 Operand expressions support arbitrary arithmetic and
 bitwise operators. Invalid combinations of real numbers and
@@ -148,11 +146,7 @@ Example:
 When assembled with asfv1, the resulting machine code contains
 9 instructions and padding with NOP instructions:
 
-	$ ./asfv1.py -b -n example.asm example.bin
-	FV-1 Assembler v1.2.0
-	info: Reading input from example.asm
-	info: Read 9 instructions from input
-	info: Writing binary output to example.bin
+	$ asfv1 -q -b -n example.asm example.bin
 	$ hd example.bin 
 	00000000  80 40 00 11 00 00 02 05  00 00 04 06 00 00 02 85  |.@..............|
 	00000010  00 00 04 0a 00 00 00 02  20 04 cc c0 20 09 99 80  |........ ... ...|
@@ -163,7 +157,7 @@ When assembled with asfv1, the resulting machine code contains
 
 ### Comments 
 
-A semicolon character ';' starts comment text. the assembler will
+A semicolon character ';' starts comment text. The assembler will
 ignore all text including the ';' up to the end of a line. Examples:
 
 	; Comment out the whole line
@@ -279,7 +273,7 @@ Use of an already defined label for a target will result in a parser error:
 ### Instructions
 
 An instruction is represented by a mnemonic text followed by zero 
-or more operand expressions separated by commas:
+or more [operand expressions](#operand-expressions) separated by commas:
 
 Mnemonic | Operands | Description
 --- | --- | ---
@@ -348,10 +342,10 @@ The following numeric entry formats are recognised:
 	0b1010_1111	binary integer 175
 	%0101_1111	binary integer 175 (_ optional)
 	1.124		floating point number 1.124
-	1.124e-3	floating point number 0.001124
+	1.124e-3	floating point number with exponent 0.001124
 
-The final evaluated value of each expression will be either an
-integer value, which is used for the instruction operand
+The final value of an expression will be either an
+integer, which is used for the instruction operand
 unchanged or a floating point value which is later converted
 to the closest fixed-point integer of the required size
 (see [Fixed Point Conversion](#fixed-point-conversion) below).
@@ -371,24 +365,24 @@ following grammar:
 	atom ::= label | literal | "(" expression ")"
 
 Where label is a text label, and literal is a number. Expressions 
-are parsed and evaluated in-place by asfv1. With the exception
-of [jump targets](#jump-targets), all labels must be defined
+are parsed and evaluated in-place by asfv1. All labels must be defined
 before they are referenced in an expression.
 
 ### Fixed Point Conversion
 
-The FV-1 arithmetic processor operates on fixed-point numbers
-which are converted by the assembler from an intermediate
-floating-point value to an equivalent unsigned integer
-which is placed in the machine code. In asfv1, the
-conversion is performed for all types by computing the
-multiplication:
+For instructions that require fixed-point real values as
+input, asfv1 automatically converts real expression results
+from an intermediate floating-point value to the nearest
+equivalent signed fixed-point integer. This value is then
+masked to the correct number of bits and placed in machine
+code. The conversion is performed for all types by computing
+the multiplication:
 
-	fixed = int(round(floating * REFERENCE))
+	fixed = int(round(floating * REFERENCE)) & MASK
 
 Where REFERENCE is the equivalent integer value of +1.0 in the 
-desired number format, and floating is the saturated intermediate
-floating-point value. The following table lists the properties
+desired number format and floating is the saturated intermediate
+floating-point value. The following table lists the sizes and range
 of each of the FV-1 number formats. 
 
 	Name	Bits	Refval	Minval	Maxval
@@ -398,6 +392,8 @@ of each of the FV-1 number formats.
 	S1_14	16	16384	-2.0	1.99993896484375
 	S_15	16	32768	-1.0	0.999969482421875
 	S_23	24	8388608	-1.0	0.9999998807907104
+
+Note: Quantisation step size is 1/Refval
 
 ### Pre-defined Labels
 
