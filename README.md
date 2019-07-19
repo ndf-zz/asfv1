@@ -281,34 +281,36 @@ Use of an already defined label for a target will result in a parser error:
 An instruction is represented by a mnemonic text followed by zero 
 or more operand expressions separated by commas:
 
- - rda	ADDRESS,MULTIPLIER	; multiply delay[ADDRESS] & accumulate
- - rmpa	MULTIPLER		; multiply delay[ADDR_PTR] & accumulate
- - wra	ADDRESS,MULTIPLIER	; write delay[ADDRESS] & multiply
- - wrap	MULTIPLIER		; write delay[ADDR_PTR], multiply & add LR
- - rdax	REGISTER,MULTIPLIER	; multiply (*REGISTER) & accumulate
- - rdfx	REGISTER,MULTIPLIER	; subtract (*REGISTER), multiply & add (*REGISTER)
- - ldax	REGISTER		; load (*REGISTER)
- - wrax	REGISTER,MULTIPLIER	; write (*REGISTER) & multiply
- - wrhx	REGISTER,MULTIPLIER	; write (*REGISTER) & highpass shelf
- - wrlx	REGISTER,MULTIPLIER	; write (*REGISTER) & lowpass shelf
- - maxx	REGISTER,MULTIPLIER	; load maximum of absolute values
- - absa				; load absolute value of ACC
- - mulx	REGISTER		; multiply by (*REGISTER)
- - log	MULTIPLIER,OFFSET	; log2(ACC), multiply & offset
- - exp	MULTIPLIER,OFFSET	; 2**(ACC), multiply & offset
- - sof	MULTIPLIER,OFFSET	; multiply & offset
- - and	VALUE			; bitwise AND
- - clr				; clear ACC
- - or	VALUE			; bitwise OR
- - xor	VALUE			; bitwise XOR
- - not				; bitwise negation
- - skp	CONDITIONS,OFFSET	; skip offset instructions if all conditions met
- - nop				; no operation
- - wlds	LFO,FREQUENCY,AMPLITUDE	; ajdust SIN LFO
- - wldr	LFO,FREQUENCY,AMPLITUDE	; adjust RMP LFO
- - jam	LFO			; reset LFO
- - [cho](#cho-type-lfo-flags-address)	TYPE,LFO,FLAGS,ADDRESS	; interpolated memory access
- - [raw](#raw-u32)	U32			; insert U32 opcode
+Instruction | Description
+--- | ---
+rda	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] & accumulate
+rmpa	MULTIPLER		| multiply delay[ADDR_PTR] & accumulate
+wra	ADDRESS,MULTIPLIER	| write delay[ADDRESS] & multiply
+wrap	MULTIPLIER		| write delay[ADDR_PTR], multiply & add LR
+rdax	REGISTER,MULTIPLIER	| multiply (*REGISTER) & accumulate
+rdfx	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply & add (*REGISTER)
+ldax	REGISTER		| load (*REGISTER)
+wrax	REGISTER,MULTIPLIER	| write (*REGISTER) & multiply
+wrhx	REGISTER,MULTIPLIER	| write (*REGISTER) & highpass shelf
+wrlx	REGISTER,MULTIPLIER	| write (*REGISTER) & lowpass shelf
+maxx	REGISTER,MULTIPLIER	| load maximum of absolute values
+absa				| load absolute value of ACC
+mulx	REGISTER		| multiply by (*REGISTER)
+log	MULTIPLIER,OFFSET	| log2(ACC), multiply & offset
+exp	MULTIPLIER,OFFSET	| 2\*\*(ACC), multiply & offset
+sof	MULTIPLIER,OFFSET	| multiply & offset
+and	VALUE			| bitwise AND
+clr				| clear ACC
+or	VALUE			| bitwise OR
+xor	VALUE			| bitwise XOR
+not				| bitwise negation
+skp	CONDITIONS,OFFSET	| skip offset instructions if all conditions met
+nop				| no operation
+wlds	LFO,FREQUENCY,AMPLITUDE	| ajdust SIN LFO
+wldr	LFO,FREQUENCY,AMPLITUDE	| adjust RMP LFO
+jam	LFO			| reset LFO
+`[cho](#cho-type-lfo-flags-address)	TYPE,LFO,FLAGS,ADDRESS`	| interpolated memory access
+`[raw](#raw-u32)	U32`			| insert U32 opcode
 
 Each operand must evaluate to a single constant numeric
 value. The sizes and types are specific to each instruction
