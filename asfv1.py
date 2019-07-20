@@ -737,7 +737,7 @@ class fv1parse(object):
             if message is not None:
                 self.parseerror(message)
             else:
-                self.parseerror('Expected {} but saw {}/{}'.format(
+                self.parseerror('Expected {} but saw {} {}'.format(
                              stype, self.sym['type'], repr(self.sym['txt'])),
                                  self.sline)
 
@@ -899,18 +899,10 @@ class fv1parse(object):
         """Parse an operand expression."""
         acc = None
         try:
-            intcast = False
-            if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == 'INT':
-                intcast = True
-                self.__next__()
             acc = self.__or_expr__()
-            if intcast:
-                if type(acc) is not int:
-                    acc = int(round(acc))
         except Exception as e:
             self.parseerror(str(e))
         return acc
-
 
     def __or_expr__(self):
         """Parse an or expression."""
@@ -1022,14 +1014,17 @@ class fv1parse(object):
     def __atom__(self):
         """Parse an atom or start a new expression."""
         ret = None
-        if self.sym['type'] == 'OPERATOR' and self.sym['txt'] == '(':
+        if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '(':
             self.__next__()
             ret = self.__expression__()
-            if self.sym['type'] == 'OPERATOR' and self.sym['txt'] == ')':
+            if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == ')':
                 self.__next__()
             else:
-                self.parseerror("Expected ')' but saw {}/{}".format(
+                self.parseerror("Expected ')' but saw {} {}".format(
                               self.sym['type'], repr(self.sym['txt'])))
+        elif self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == 'INT':
+            self.__next__()
+            ret = int(round(self.__expression__()))
         elif self.sym['type'] == 'NAME':
             stxt = self.sym['stxt']
             if stxt in self.symtbl:
@@ -1041,7 +1036,7 @@ class fv1parse(object):
             ret = self.sym['val']
             self.__next__()
         else:
-            self.parseerror('Expected name or value but saw {}/{}'.format(
+            self.parseerror('Expected LABEL or NUMBER but saw {} {}'.format(
                               self.sym['type'], repr(self.sym['txt'])))
         return ret
 
@@ -1057,7 +1052,7 @@ class fv1parse(object):
             self.jmptbl[lbl] = oft
             self.__next__()
         else:
-            self.parseerror('Expected LABEL but saw {}/{}'.format(
+            self.parseerror('Expected LABEL but saw {} {}'.format(
                               self.sym['type'], repr(self.sym['txt'])))
 
     def __assembler__(self):
@@ -1072,14 +1067,14 @@ class fv1parse(object):
             typ = self.sym['stxt']
             self.__next__()
         else:
-            self.parseerror('Expected EQU or MEM but saw {}/{}'.format(
+            self.parseerror('Expected EQU or MEM but saw {} {}'.format(
                              self.sym['type'], repr(self.sym['txt'])))
         if arg1 is None:
             if self.sym['type'] == 'NAME':
                 arg1 = self.sym['stxt']
                 self.__next__()
             else:
-                self.parseerror('Expected NAME but saw {}/{}'.format(
+                self.parseerror('Expected NAME but saw {} {}'.format(
                              self.sym['type'], repr(self.sym['txt'])))
 
         # strip the modifier and check for re-definition
@@ -1137,7 +1132,7 @@ class fv1parse(object):
             elif self.sym['type'] == 'NAME' or self.sym['type'] == 'ASSEMBLER':
                 self.__assembler__()
             else:
-                self.parseerror('Unexpected input {}/{}'.format(
+                self.parseerror('Unexpected input {} {}'.format(
                                   self.sym['type'], repr(self.sym['txt'])))
         # patch skip targets if required
         for i in self.pl:
