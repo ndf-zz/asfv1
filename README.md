@@ -570,26 +570,24 @@ Example:
 		wra	pdel^+324,0.25	; write ACC to delay[pdel^+324] scale ACC by 0.25
 		wra	pdel#,0.0	; write ACC to delay[pdel#] clear ACC
 
-### wrap MULTIPLIER
+### wrap ADDRESS, MULTIPLIER
 
-Write ACC to delay memory, using ADDR_PTR as the delay address.
-Multiply ACC, add to LR and save to ACC.
+Write ACC to delay memory, multiply ACC, add to LR and save to ACC.
 
+	ADDRESS:	Real S_15 or Unsigned 15bit integer delay address
 	MULTIPLIER:	Real S1_9 or Unsigned 11bit integer
-	Assembly:	MULTIPLIER<<21 | 0b00011
+	Assembly:	MULTIPLIER<<21 | ADDRESS<<5 | 0b00011
 
 Action:
 
-	delay[(*ADDR_PTR)>>8] <- ACC
+	delay[ADDRESS] <- ACC
+	ACC <- LR + MULTIPLIER * ACC
 	PACC <- ACC
-	ACC <- MULTIPLIER * ACC + LR
 
 Example:	
 
-		or	0x1000<<8	; load 0x100000 into ACC
-		wrax	ADDR_PTR,0.0	; save to ADDR_PTR and clear ACC
 		ldax	ADCL		; read from left input
-		wrap	0.3		; write ACC to delay[0x1000] scale ACC by 0.3 add to LR
+		wrap	0x1000,0.3	; write ACC to delay[0x1000] scale ACC by 0.3 add to LR
 
 ### rdax REGISTER, MULTIPLIER
 
@@ -657,8 +655,8 @@ Copy ACC to REGISTER, and multiply ACC.
 Action:
 
 	(*REGISTER) <- ACC
-	PACC <- ACC
 	ACC <- MULTIPLIER * ACC
+	PACC <- ACC
 
 Example:	
 
@@ -676,8 +674,8 @@ Copy ACC to REGISTER, multiply ACC and add to PACC.
 Action:
 
 	(*REGISTER) <- ACC
-	PACC <- ACC
 	ACC <- PACC + MULTIPLIER * ACC
+	PACC <- ACC
 
 Example:	
 
@@ -696,8 +694,8 @@ Copy ACC to REGISTER, subtract ACC from PACC, multiply and add to PACC.
 Action:
 
 	(*REGISTER) <- ACC
-	PACC <- ACC
 	ACC <- PACC + MULTIPLIER * (PACC - ACC)
+	PACC <- ACC
 
 Example:	
 
@@ -831,7 +829,7 @@ Example:
 
 		ldax	POT0		; load POT0 into ACC
 		and	0x700000	; mask pot to 8 steps
-		and	0x0		; clear ACC
+		and	0		; clear ACC
 
 ### clr
 
@@ -1017,7 +1015,7 @@ Adjust RMP LFO with coefficients FREQUENCY and AMPLITUDE.
 	LFO:		2bit integer (RMP0 or RMP1)
 	FREQUENCY:	Real S_15 or Signed 16bit integer
 	AMPLITUDE:	2bit integer (0=4096, 1=2048, 2=1024, 3=512)
-	Assembly:	LFO<<29 | FREQUENCY<<20 | AMPLITUDE<<5 | 0b10010
+	Assembly:	LFO<<29 | FREQUENCY<<13 | AMPLITUDE<<5 | 0b10010
 
 Notes:
 
