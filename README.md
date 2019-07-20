@@ -325,7 +325,7 @@ Mnemonic | Operands | Description
 [rda](#rda-address-multiplier)	|	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] & accumulate
 [rmpa](#rmpa-multiplier)	|	MULTIPLER		| multiply delay[(*ADDR_PTR)] & accumulate
 [wra](#wra-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS] & multiply
-[wrap](#wrap-multiplier)	|	MULTIPLIER		| write delay[(*ADDR_PTR)], multiply & add LR
+[wrap](#wrap-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS], multiply & add LR
 [rdax](#rdax-register-multiplier)	|	REGISTER,MULTIPLIER	| multiply (*REGISTER) & accumulate
 [rdfx](#rdfx-register-multiplier)	|	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply & add (*REGISTER)
 [ldax](#ldax-register)	|	REGISTER		| load (*REGISTER)
