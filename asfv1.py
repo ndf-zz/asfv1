@@ -29,7 +29,7 @@ import shlex
 import struct
 
 # Constants
-VERSION = '1.2.0'
+VERSION = '1.2.1'
 PROGLEN = 128
 DELAYSIZE = 32767
 
