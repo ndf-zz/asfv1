@@ -120,23 +120,23 @@ op_tbl = {
         'WRAP': [0b00011, (M15,5),(M11,21)],
         'RDAX': [0b00100, (M6,5),(M16,16)],
         'RDFX': [0b00101, (M6,5),(M16,16)],
-        'LDAX':	[0b00101, (M6,5),(M16,16)], # psuedo: RDFX REG,$0
+        'LDAX':	[0b00101, (M6,5)], # psuedo: RDFX REG,0
         'WRAX': [0b00110, (M6,5),(M16,16)],
         'WRHX': [0b00111, (M6,5),(M16,16)],
         'WRLX': [0b01000, (M6,5),(M16,16)],
         'MAXX': [0b01001, (M6,5),(M16,16)],
-        'ABSA':	[0b01001, (M6,5),(M16,16)], # pseudo: MAXX $0,$0
+        'ABSA':	[0b01001, ], # pseudo: MAXX 0,0
         'MULX': [0b01010, (M6,5)],
         'LOG':  [0b01011, (M16,16),(M11,5)],
         'EXP':  [0b01100, (M16,16),(M11,5)],
         'SOF':  [0b01101, (M16,16),(M11,5)],
         'AND':  [0b01110, (M24,8)],
-        'CLR':	[0b01110, (M24,8)], # pseudo: AND $0
+        'CLR':	[0b01110, ], # pseudo: AND $0
         'OR' :  [0b01111, (M24,8)],
         'XOR':  [0b10000, (M24,8)],
         'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
         'SKP':  [0b10001, (M5,27),(M6,21)],	# note 1
-        'NOP':	[0b10001, (M27,5)], # pseudo: SKP 0,0 note 2
+        'NOP':	[0b10001, ], # pseudo: SKP 0,0 note 2
         'WLDS': [0b10010, (M1,29),(M9,20),(M15,5)],
         'WLDR': [0b10010, (M2,29),(M16,13),(M2,5)], # CHECK
         'JAM':  [0b10011, (M2,6)],
@@ -858,11 +858,11 @@ class fv1parse(object):
             self.pl.append({'cmd':['NOP', 0x0],'addr':self.icnt})
             self.icnt += 1
         elif mnemonic == 'ABSA':
-            # pseudo command MAXX $0,$0
+            # pseudo command MAXX 0,0
             self.pl.append({'cmd':['MAXX', 0x0, 0x0],'addr':self.icnt})
             self.icnt += 1
         elif mnemonic == 'LDAX':
-            # pseudo command RDFX REG,$0
+            # pseudo command RDFX REG,0
             reg = self.__register__(mnemonic)
             self.pl.append({'cmd':['RDFX', reg, 0x0],'addr':self.icnt})
             self.icnt += 1
