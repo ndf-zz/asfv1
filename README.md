@@ -115,21 +115,23 @@ ignored.
 ## Program Syntax
 
 An FV-1 assembly program recognised by asfv1 closely resembles
-the SpinIDE (.spn) format. It is made up of zero to 128
+the SpinIDE (.spn) format. Input is an ASCII, utf-8 or utf-16 encoded
+text file containing zero to 128 FV-1
 [instructions](#instructions) with optional
 [targets](#jump-targets), [labels](#label-assignment),
 [comments](#comments) and [assembly directives](#memory-allocation).
 Instruction mnemonics, targets and labels are
-matched case-insensitively.
+matched case-insensitively and runs of whitespace characters
+(newline, tab, space) are condensed.
 Each of the input instructions is assembled into a single 32 bit
 machine code. If less than 128 assembly instructions are input,
 the unallocated program space is padded with 'NOP' instructions
 (0x00000011).
 
-Example:
+For [example](example.asm):
 
 	; A complete, but useless FV-1 assembly program
-	MEM	delay	32767*3//5	; ~0.6 sec delay
+	MEM	delay	int 32767*3/5	; ~0.6 sec delay
 	EQU	input	ADCL		; read input from ADCL
 	EQU	output	DACL		; write output to DACL
 	EQU	vol	REG0		; use REG0 for volume
@@ -158,12 +160,20 @@ When assembled with asfv1, the resulting machine code contains
 ### Comments 
 
 A semicolon character ';' starts comment text. The assembler will
-ignore all text including the ';' up to the end of a line. Examples:
+ignore all text including the ';' up to the end of a line.
+Examples:
 
-	; Comment out the whole line
+	; Comment out a whole line
 	target:	or	0xffffff	; comment to end of line
-	target:		; comment between target and instruction
-		and	0x000000	; comment 
+	trget2:		; comment between target and instruction
+		and	0x000000	; comment follows instruction
+		; xor 0xa5a5a5		; instruction commented out
+	; excessive commenting:
+	addr02: cho			; op=0x14 interpolated memory access
+			rdal,		; type=0x3 read offset(LFO) into ACC
+			SIN1,		; lfo=0x1 use SIN1 LFO
+			COS|REG|COMPA	; flags=0xb register LFO and use -COS output
+					; Machine code: 0xcb200014
 
 ### Label Assignment
 
@@ -173,8 +183,9 @@ Directive 'EQU' assigns the constant value resulting from the
 evaluation of 'EXPRESSION' (see
 [Operand Expressions](#operand-expressions)
 below) to the text label 'LABEL'.
-LABEL must begin with one alphabetic character in the set A-Z,a-z
-and can contain any number of alphanumeric characters plus underscore.
+LABEL must begin with one alphabetic character in the set [A-Z,a-z]
+followed by any number of alphanumeric characters or underscores:
+[A-Z,a-z,0-9,_].
 EXPRESSION can contain any previously assigned labels, including
 those pre-defined by the assembler (see
 [Pre-defined Labels](#pre-defined-labels) below). For
@@ -182,8 +193,8 @@ compatibility with SpinASM, the order of 'EQU' and 'LABEL'
 may be swapped. Examples:
 
 	EQU	input	ADCL		; assign ADCL (0x14) to 'input'
-	EQU	ratio	3/7		; assign the value 3/7 to 'ratio'
-	inve	EQU	1/ratio		; assign the inverse of ratio to 'inve'
+	EQU	r3_7	3/7		; assign the value 3/7 to 'r3_7'
+	inve	EQU	1/r3_7		; assign the inverse of 'r3_7' to 'inve'
 
 EQU does not generate any code in the program, it merely reserves
 the name for subsequent use. The parser evaluates all expressions
@@ -201,26 +212,35 @@ a warning message:
 
 	warning: Label 'POT0' re-defined on line ...
 
+Labels, mnemonics and operators are matched case insensitively:
+
+	EQU	Label_One	-1.0	; assign 1.0 to 'LABEL_ONE'
+	eQu	lABEL_oNE	-1.0	; assign 1.0 to 'LABEL_ONE' again
+		Or	label_one	; or -1.0
+		oR	LABEL_ONE	; or -1.0
+		OR	LABEL_ONE	; or -1.0
+		or	lAbEl_OnE	; or -1.0
+
 ### Memory Allocation
 
-	MEM	NAME	EXPRESSION
+	MEM	LABEL	EXPRESSION
 
 Addresses in the FV-1's 32768 sample circular buffer can be assigned
 by the assembler using the 'MEM' directive. MEM reserves a portion
 of memory that represents a delay of 'EXPRESSION' samples between
-the start point and end point.
-It declares three pointers:
+the start point and end point, and assigns three labels:
 
-	NAME	start of delay segment
-	NAME^	midpoint of delay segment
-	NAME#	end of delay segment
+	LABEL	start of delay segment
+	LABEL^	midpoint of delay segment
+	LABEL#	end of delay segment
 
-For example:
+LABEL has the same requirements as for [EQU](#label-assignment), and
+the assigned LABELS can be used in any expression. Eg:
 
-	MEM	delay	375		; declare a 375 sample delay
-		wra	delay,0.0	; write to start of delay
-		rda	delay^,0.5	; read 0.5* midpoint of delay
-		rda	delay#,0.5	; add to 0.5* end of delay
+	MEM	Del_A	375		; declare a 375 sample delay called 'DEL_A'
+		wra	DEL_A,0.0	; write to start of delay, DEL_A=0
+		rda	del_a^,0.5	; read 0.5*midpoint of delay, DEL_A^=187
+		rda	DeL_A#,0.5	; add to 0.5*end of delay, DEL_A#=375
 
 EXPRESSION must define an integer number of samples
 or a parse error will be generated:
@@ -249,7 +269,7 @@ need to be explicitly parenthesised if used with '^':
 
 		or	delay^0xffff	; parse error - delay label takes caret
 
-	parse error: Unexpected input INTEGER/'0xffff' on line ...
+	parse error: Unexpected input INTEGER '0xffff' on line ...
 
 		or	(delay)^0xffff	; OK - parentheses enforce ordering
 		or	delay^^0xffff	; OK 
@@ -258,17 +278,42 @@ need to be explicitly parenthesised if used with '^':
 
 Jump targets label a particular address in the program output
 and can be placed between instructions anywhere in a source file.
+A jump target is a LABEL followed by a colon ':' character:
 
-			or	0xff	target1:	; target after instr
-	target2:			; target on its own line
-	target3:	and	0x12	; all three targets are the same
+			skp	1,TARGET1	; skip offset is 3
+			skp	2,TARGET2	; skip offset is 2
+			skp	4,TARGET3	; skip offset is 1
+			or	0xff	Target1:	; target after instr
+	TARGET2:			; target on its own line
+	tarGET3:	and	0x12	; all three targets point to this instruction
 
-Use of an already defined label for a target will result in a parser error:
+Use of an already defined LABEL for a target will result in a parse error:
 
 	EQU	error	-1
 	error:	or	0x800000
 
 	parse error: Label ERROR already assigned on line ...
+
+Target labels are not assigned values until parsing is complete,
+so they can only be used as a destination for a
+[skip instruction](#skp-conditions-offset). For example, 
+the following attempt to offset from a target generates a
+parse error:
+
+		skp	NEG,target	; skip to target if negaive
+		skp	0,target+1	; error - invalid expression
+	target:	clr			; clear ACC
+		wrax	DACL,0.0	; output only positive
+
+	parse error: Unexpected input OPERATOR '+' on line ...
+
+To achieve the desired if/else behaviour, use a second target:
+
+		skp	NEG,ifpart	; skip to target if negaive
+		skp	0,elsept	; else, skip ahead
+	ifpart:	clr			; clear ACC
+	elsept:	wrax	DACL,0.0	; output >= 0
+
 
 ### Instructions
 
@@ -314,9 +359,9 @@ value. The sizes and types are specific to each instruction
 
 Operand expressions are any valid combination
 of labels, numbers and the following operators,
-ordered from lowest precedence (least binding) to highest
-(most binding):
+listed in order of precedence from lowest to highest:
 
+	( )	parentheses
 	int	unary typecast (round float value to nearest integer)
 	|	bitwise or
 	^	bitwise xor
@@ -332,7 +377,6 @@ ordered from lowest precedence (least binding) to highest
 	+	unary plus
 	~	unary negate (! in spinasm)
 	**	power
-	( )	parentheses
 
 The following numeric entry formats are recognised:
 
@@ -349,11 +393,15 @@ integer, which is used for the instruction operand
 unchanged or a floating point value which is later converted
 to the closest fixed-point integer of the required size
 (see [Fixed Point Conversion](#fixed-point-conversion) below).
+The unary `int` operator will force a floating-point expression value
+to be rounded and converted to the nearest integer:
+
+	MEM	d0_23	int 0.23*0x8000	; ~0.23 second delay = 7537 samples
 
 More formally, a valid operand expression matches the
 following grammar:
 
-	expression ::= ["int"] or_expr
+	expression ::= or_expr
 	or_expr ::= xor_expr | or_expr "|" xor_expr
 	xor_expr ::= and_expr | xor_expr "^" and_expr
 	and_expr ::= shift_expr | and_expr "&" shift_expr
@@ -362,7 +410,7 @@ following grammar:
 	m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
 	u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
 	power ::= atom ["**" u_expr]
-	atom ::= label | literal | "(" expression ")"
+	atom ::= label | literal | "(" expression ")" | "int" expression
 
 Where label is a text label, and literal is a number. Expressions 
 are parsed and evaluated in-place by asfv1. All labels must be defined
@@ -398,44 +446,47 @@ Note: Quantisation step size is 1/Refval
 ### Pre-defined Labels
 
 The following text labels are pre-defined by asfv1.
+Refer to the FV-1 datasheet for information on the 
+function of registers.
 
-	Label		Value		Description
-	SIN0_RATE	0x00		SIN0 rate control register
-	SIN0_RANGE	0x01		SIN0 range control register
-	SIN1_RATE	0x02		SIN1 rate control register
-	SIN1_RANGE	0x03		SIN1 range control register
-	RMP0_RATE	0x04		RMP0 rate control register
-	RMP0_RANGE	0x05		RMP0 range control register
-	RMP1_RATE	0x06		RMP1 rate control register
-	RMP1_RANGE	0x07		RMP1 range control register
-	POT0		0x10		POT0 input register
-	POT1		0x11		POT1 input register
-	POT2		0x12		POT2 input register
-	ADCL		0x14		Left AD input register
-	ADCR		0x15		Right AD input register
-	DACL		0x16		Left DA output register
-	DACR		0x17		Right DA output register
-	ADDR_PTR	0x18		Delay address pointer
-	REG0 - REG31	0x20 - 0x3f	General purpose registers
-	SIN0		0x00		SIN0 LFO selector
-	SIN1		0x01		SIN1 LFO selector
-	RMP0		0x02		RMP0 LFO selector
-	RMP1		0x03		RMP1 LFO selector
-	RDA		0x00		CHO type selector
-	SOF		0x02		CHO type selector
-	RDAL		0x03		CHO type selector
-	SIN		0x00		CHO flag
-	COS		0x01		CHO flag
-	REG		0x02		CHO flag
-	COMPC		0x04		CHO flag
-	COMPA		0x08		CHO flag
-	RPTR2		0x10		CHO flag
-	NA		0x20		CHO flag
-	RUN		0x10		SKP condition flag
-	ZRC		0x08		SKP condition flag
-	ZRO		0x04		SKP condition flag
-	GEZ		0x02		SKP condition flag
-	NEG		0x01		SKP condition flag
+Label | Value | Description
+--- | --- | ---
+`SIN0_RATE`	|	`0x00`	|	SIN0 rate control register
+`SIN0_RANGE`	|	`0x01`	|	SIN0 range control register
+`SIN1_RATE`	|	`0x02`	|	SIN1 rate control register
+`SIN1_RANGE`	|	`0x03`	|	SIN1 range control register
+`RMP0_RATE`	|	`0x04`	|	RMP0 rate control register
+`RMP0_RANGE`	|	`0x05`	|	RMP0 range control register
+`RMP1_RATE`	|	`0x06`	|	RMP1 rate control register
+`RMP1_RANGE`	|	`0x07`	|	RMP1 range control register
+`POT0`	|	`0x10`	|	POT0 input register
+`POT1`	|	`0x11`	|	POT1 input register
+`POT2`	|	`0x12`	|	POT2 input register
+`ADCL`	|	`0x14`	|	Left AD input register
+`ADCR`	|	`0x15`	|	Right AD input register
+`DACL`	|	`0x16`	|	Left DA output register
+`DACR`	|	`0x17`	|	Right DA output register
+`ADDR_PTR`	|	`0x18`	|	Delay address pointer
+`REG0` - `REG31`	|	`0x20` - `0x3f`	|	General purpose registers
+`SIN0`	|	`0x00`	|	SIN0 LFO selector
+`SIN1`	|	`0x01`	|	SIN1 LFO selector
+`RMP0`	|	`0x02`	|	RMP0 LFO selector
+`RMP1`	|	`0x03`	|	RMP1 LFO selector
+`RDA`	|	`0x00`	|	CHO type selector
+`SOF`	|	`0x02`	|	CHO type selector
+`RDAL`	|	`0x03`	|	CHO type selector
+`SIN`	|	`0x00`	|	CHO flag
+`COS`	|	`0x01`	|	CHO flag
+`REG`	|	`0x02`	|	CHO flag
+`COMPC`	|	`0x04`	|	CHO flag
+`COMPA`	|	`0x08`	|	CHO flag
+`RPTR2`	|	`0x10`	|	CHO flag
+`NA`	|	`0x20`	|	CHO flag
+`RUN`	|	`0x10`	|	SKP condition flag
+`ZRC`	|	`0x08`	|	SKP condition flag
+`ZRO`	|	`0x04`	|	SKP condition flag
+`GEZ`	|	`0x02`	|	SKP condition flag
+`NEG`	|	`0x01`	|	SKP condition flag
 
 Pre-defined labels may be re-defined within a source file, 
 however, the re-defined value only applies to label references
@@ -480,9 +531,9 @@ the contents of ADDR_PTR as the delay address.
 
 Action:
 
-	ACC <- ACC + MULTIPLIER * delay[(*ADDR_PTR)/256]
+	ACC <- ACC + MULTIPLIER * delay[(*ADDR_PTR)>>8]
 	PACC <- ACC
-	LR <- delay[(*ADDR_PTR)/256]
+	LR <- delay[(*ADDR_PTR)>>8]
 
 Notes:
 
@@ -529,7 +580,7 @@ Multiply ACC, add to LR and save to ACC.
 
 Action:
 
-	delay[(*ADDR_PTR)/256] <- ACC
+	delay[(*ADDR_PTR)>>8] <- ACC
 	PACC <- ACC
 	ACC <- MULTIPLIER * ACC + LR
 
@@ -936,8 +987,8 @@ Notes:
  - FREQUENCY coefficient is related to LFO rate (f) in Hz
    by the following:
 
-	FREQUENCY = int (2\*\*18 * pi * f / Fs)
-	f = FREQUENCY * Fs / (2\*\*18 * pi)
+		FREQUENCY = int (2**18 * pi * f / Fs)
+		f = FREQUENCY * Fs / (2**18 * pi)
 	
    Where Fs is the sample rate. For a 32768Hz crystal, the SIN 
    LFO ranges from 0Hz up to about 20Hz.
