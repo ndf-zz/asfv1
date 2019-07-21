@@ -366,9 +366,9 @@ python intepreter.
 
 Operator | Function | Note
 --- | --- | ---
-`| ^ &`	|	bitwise or, xor, and	| valid for integers only
+`\| ^ &`	|	bitwise or, xor, and	| valid for integers only
 `<< >>` |	shift left, shift right	| valid for integers only
-`+ -'	|	add, subtract	|
+`+ -`	|	add, subtract	|
 `* // /` |	multiply, divide	| `//` forces integer divide
 `+ - ~ int`	|	unary plus, minus, invert bits, integer cast	| `!` is an alias for `~`
 `**`	|	power	| 
