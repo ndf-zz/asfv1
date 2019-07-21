@@ -375,13 +375,15 @@ Operator | Function | Note
 
 The following numeric entry formats are recognised:
 
-	123		decimal integer 123
-	0x123		hexadecimal integer 291
-	$123		hexadecimal integer 291
-	0b1010_1111	binary integer 175
-	%0101_1111	binary integer 175 (_ optional)
-	1.124		floating point number 1.124
-	1.124e-3	floating point number with exponent 0.001124
+Literal	| Value | Type
+--- | --- | ---
+`123`	| 123 | Decimal integer
+`0x123`	| 291 | Hexadecimal integer
+`$123`	| 291 | Hexadecimal integer
+`0b1010_1111`	| 175 | Binary integer
+`%0101_1111`	| 175 | Binary integer ('_' is ignored)
+`1.124`	| 1.124 | Floating point number
+`1.124e-3`	| 0.001124 | Floating point number with exponent
 
 The final value of an expression will be either an
 integer, which is used for the instruction operand
@@ -392,6 +394,21 @@ The unary `int` operator will force a floating-point value
 to be rounded and converted to the nearest integer:
 
 	MEM	d0_23	int(0.23*0x8000) ; ~0.23 second delay = 7537 samples
+
+If the result of the expression is a complex number, or if the
+expression cannot be evaluated, a parse error is generated:
+
+	EQU	j	(-1)**(1/2)	; j=sqrt(-1)
+
+	parse error: Expression result (6.123233995736766e-17+1j) invalid type on line ...
+
+	EQU	ns	1024<<(-1)	; impossible negative shift
+
+	parse error: negative shift count on line ...
+
+	EQU	tms	(1024/13)&0x123	; type mismatch
+
+	parse error: unsupported operand type(s) for &: 'float' and 'int' on line ...
 
 More formally, a valid operand expression matches the
 following grammar:
@@ -532,8 +549,8 @@ Action:
 
 Notes:
 
-   - 15 bit delay addresses in ADDR_PTR are left-aligned 8 bits,
-     they can be accessed using the real value 0->0.9999 or
+   - 15 bit delay addresses in ADDR_PTR are left shifted 8 bits,
+     so they can be accessed using the real S_23 value 0->0.9999 or
      directly by multiplying the desired integer delay address by 256.
 
 Example:	
