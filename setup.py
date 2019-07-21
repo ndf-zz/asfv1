@@ -4,9 +4,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    python_requires='>=3',
+    python_requires='>=2.6',
     name="asfv1",
-    version="1.2.1",
+    version="1.2.2",
     author="Nathan Fraser",
     author_email="ndf@metarace.com.au",
     description="Alternate FV-1 Assembler",
@@ -22,7 +22,7 @@ setuptools.setup(
         'Development Status :: 5 - Production/Stable',
 	'Environment :: Console',
         'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
-        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python',
         'Topic :: Software Development :: Assemblers',
     ],
     py_modules=['asfv1',],
