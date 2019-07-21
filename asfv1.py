@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # asfv1: Alternate FV-1 Assembler
 # Copyright (C) 2017-2019 Nathan Fraser
@@ -23,13 +22,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Python 2 compatibility
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import range
+from builtins import open
+from builtins import str
+from builtins import round
+from builtins import int
+
+# Imports
 import argparse
 import sys
 import shlex
 import struct
 
 # Constants
-VERSION = '1.2.1'
+VERSION = '1.2.2'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAXERR = 10	# abort assembly if too many errors found
@@ -1343,12 +1354,10 @@ def main():
     parser = argparse.ArgumentParser(
                 description='Assemble a single FV-1 DSP program.')
     parser.add_argument('infile',
-                        type=argparse.FileType('r'),
+                        type=argparse.FileType('rb'),
                         help='program source file')
     parser.add_argument('outfile',
-                        nargs='?',
-                        help='assembled output file',
-                        default=sys.stdout) 
+                        help='assembled output file')
     parser.add_argument('-q', '--quiet',
                         action='store_true',
                         help='suppress warnings')
@@ -1377,7 +1386,7 @@ def main():
         dowarn = quiet
     dowarn('FV-1 Assembler v' + VERSION)
     dowarn('info: Reading input from ' + args.infile.name)
-    inbuf = args.infile.buffer.read()
+    inbuf = args.infile.read()
     encoding = 'utf-8'
     # check for BOM
     if len(inbuf) > 2 and inbuf[0] == 0xFF and inbuf[1] == 0xFE:
@@ -1401,14 +1410,11 @@ def main():
     fp.parse()
     
     ofile = None
-    if args.outfile is sys.stdout:
-        ofile = args.outfile.buffer
-    else:
-        try:
-            ofile = open(args.outfile, 'wb')
-        except Exception as e:
-            error('error: writing output: ' + str(e))
-            sys.exit(-1)
+    try:
+        ofile = open(args.outfile, 'wb')
+    except Exception as e:
+        error('error: writing output: ' + str(e))
+        sys.exit(-1)
     if args.binary and ofile.isatty():
         args.binary = False
         dowarn('warning: Terminal output forced to hex')
