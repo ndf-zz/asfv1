@@ -283,71 +283,115 @@ class fv1parse(object):
 
     def __register__(self, mnemonic=''):
         """Fetch a register definition."""
+        xtra = ''
+        if mnemonic:
+            xtra = 'for ' + mnemonic
         reg = self.__expression__()
-        if type(reg) is not int or reg < 0 or reg > 63:
-            xtra = ''
-            if mnemonic:
-                xtra = 'for ' + mnemonic + ': '
-            self.parseerror('Invalid register definition ' + xtra + repr(reg))
+        if int(reg) == reg:
+            reg = int(reg)
+            if reg < 0 or reg > 63:
+                self.parseerror('Register {0:#x} out of range '.format(reg)
+                                + xtra)
+        else:
+            self.parseerror('Invalid register {} '.format(repr(reg))
+                            + xtra)
         return reg
+
+    def __d_15__(self,mnemonic=''):
+        """Fetch a 15 bit delay address, preferring integer interpretation"""
+        xtra = ''
+        if mnemonic:
+            xtra = 'for ' + mnemonic
+        oft = self.__expression__()
+        if oft < MIN_S_15 or oft > MAX_S_15:
+            oft = int(round(oft))
+            if oft < -0x8000 or oft > M15:
+                if self.doclamp:
+                    if oft < -0x8000:
+                        oft = -0x8000
+                    elif oft > M15:
+                        oft = M15
+                    self.parsewarn('Address clamped to {0:#x} '.format(oft)
+                                   + xtra)
+                else:
+                    self.parseerror('Invalid address {0:#x} '.format(oft)
+                                    + xtra)
+        else:
+            oft = int(round(oft * REF_S_15))
+        return oft
 
     def __offset__(self, mnemonic=''):
         """Fetch a skip offset definition."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         oft = self.__expression__()
-        if self.spinreals and type(oft) is float:
+        if int(oft) == oft:
             oft = int(oft)
-            self.parsewarn('Converted skip offset to integer '+xtra+repr(oft))
-        if type(oft) is not int or oft < 0 or oft > M6:
-            self.parseerror('Invalid skip offset ' + xtra + repr(oft))
+            if oft < 0 or oft > M6:
+                self.parseerror('Offset {} out of range '.format(oft)
+                                + xtra)
+        else:
+            self.parseerror('Invalid offset {} '.format(repr(oft))
+                            + xtra)
         return oft
 
     def __condition__(self, mnemonic=''):
         """Fetch a skip condition code."""
+        xtra = ''
+        if mnemonic:
+            xtra = 'for ' + mnemonic
         cond = self.__expression__()
-        if type(cond) is not int or cond < 0 or cond > M5:
-            xtra = ''
-            if mnemonic:
-                xtra = 'for ' + mnemonic + ': '
-            self.parseerror('Invalid skip condition code '+xtra+repr(cond))
+        if int(cond) == cond:
+            cont = int(cond)
+            if cond < 0 or cond > M5:
+                self.parseerror('Condition {0:#x} out of range '.format(
+                                cond) + xtra)
+        else:
+            self.parseerror('Invalid condition {} '.format(repr(cond))
+                            + xtra)
         return cond
 
     def __choflags__(self, lfo=None):
         """Fetch CHO condition flags."""
         flags = self.__expression__()
-        if type(flags) is not int or flags < 0 or flags > M6:
-            self.parseerror('Invalid condition flags for CHO: '+repr(flags))
+        if int(flags) == flags:
+            flags = int(flags)
+            if flags < 0 or flags > M6:
+                self.parseerror('Invalid flags {0:#x} for CHO'.format(flags))
+        else:
+            self.parseerror('Invalid flags {} for CHO'.format(repr(flags)))
         oflags = flags
         if lfo&0x02: # RMP0/RMP1
             flags = oflags & 0x3e
             if oflags != flags:
-                self.parsewarn('Cleared invalid Ramp LFO flags for CHO: '
-                                 + hex(flags))
+                self.parsewarn('RMP flags set to {0:#x} for CHO'.format(
+                                flags))
         else:
             flags = oflags & 0x0f
             if oflags != flags:
-                self.parsewarn('Cleared invalid Sine LFO flags for CHO: '
-                                 + hex(flags))
+                self.parsewarn('SIN flags set to {0:#x} for CHO'.format(
+                                flags))
         return flags
 
     def __s1_14__(self, mnemonic=''):
         """Fetch a 16 bit real argument."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M16:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M16:
                         arg = M16
-                    self.parsewarn('S1.14 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('S1.14 arg clamped to {0:#x} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S1.14 arg ' + xtra + hex(arg))
+                    self.parseerror('S1.14 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
             if arg < MIN_S1_14 or arg > MAX_S1_14:
                 if self.doclamp:
@@ -355,9 +399,11 @@ class fv1parse(object):
                         arg = MIN_S1_14
                     elif arg > MAX_S1_14:
                         arg = MAX_S1_14
-                    self.parsewarn('S1.14 arg clamped ' + xtra + repr(arg))
+                    self.parsewarn('S1.14 arg clamped to {} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S1.14 arg ' + xtra + repr(arg))
+                    self.parseerror('S1.14 arg {} out of range '.format(arg)
+                                    + xtra)
             arg = int(round(arg * REF_S1_14))
         return arg
 
@@ -365,18 +411,20 @@ class fv1parse(object):
         """Fetch an 11 bit S.10 real argument."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M11:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M11:
                         arg = M11
-                    self.parsewarn('S.10 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('S.10 arg clamped to {0:#x} '.format(
+                                   arg) + xtra)
                 else:
-                    self.parseerror('Invalid S.10 arg ' + xtra + hex(arg))
+                    self.parseerror('S.10 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
             if arg < MIN_S_10 or arg > MAX_S_10:
                 if self.doclamp:
@@ -384,9 +432,11 @@ class fv1parse(object):
                         arg = MIN_S_10
                     elif arg > MAX_S_10:
                         arg = MAX_S_10
-                    self.parsewarn('S.10 arg clamped ' + xtra + repr(arg))
+                    self.parsewarn('S.10 arg clamped to {} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S.10 arg ' + xtra + repr(arg))
+                    self.parseerror('S.10 arg {} out of range '.format(arg)
+                                    + xtra)
             arg = int(round(arg * REF_S_10))
         return arg
 
@@ -394,18 +444,20 @@ class fv1parse(object):
         """Fetch a 16 bit S.15 real argument."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M16:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M16:
                         arg = M16
-                    self.parsewarn('S.15 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('S.15 arg clamped to {0:#x} '.format(
+                                   arg) + xtra)
                 else:
-                    self.parseerror('Invalid S.15 arg ' + xtra + hex(arg))
+                    self.parseerror('S.15 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
             if arg < MIN_S_15 or arg > MAX_S_15:
                 if self.doclamp:
@@ -413,9 +465,11 @@ class fv1parse(object):
                         arg = MIN_S_15
                     elif arg > MAX_S_15:
                         arg = MAX_S_15
-                    self.parsewarn('S.15 arg clamped ' + xtra + repr(arg))
+                    self.parsewarn('S.15 arg clamped to {} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S.15 arg ' + xtra + repr(arg))
+                    self.parseerror('S.15 arg {} out of range '.format(arg)
+                                    + xtra)
             arg = int(round(arg * REF_S_15))
         return arg
 
@@ -423,38 +477,42 @@ class fv1parse(object):
         """Fetch a raw 32 bit data string."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M32:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M32:
                         arg = M32
-                    self.parsewarn('U.32 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('U.32 arg clamped to {0:#x} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid U.32 arg ' + xtra + hex(arg))
+                    self.parseerror('U.32 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
-            self.parseerror('Invalid U.32 arg ' + xtra + repr(arg))
+            self.parseerror('Invalid U.32 arg {} '.format(arg) + xtra)
         return arg
 
     def __s_23__(self, mnemonic=''):
         """Fetch a 24 bit S.23 real or mask argument."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M24:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M24:
                         arg = M24
-                    self.parsewarn('S.23 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('S.23 arg clamped to {0:#x} '.format(
+                                   arg) + xtra)
                 else:
-                    self.parseerror('Invalid S.23 arg ' + xtra + hex(arg))
+                    self.parseerror('S.23 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
             if arg < MIN_S_23 or arg > MAX_S_23:
                 if self.doclamp:
@@ -462,9 +520,11 @@ class fv1parse(object):
                         arg = MIN_S_23
                     elif arg > MAX_S_23:
                         arg = MAX_S_23
-                    self.parsewarn('S.23 arg clamped ' + xtra + repr(arg))
+                    self.parsewarn('S.23 arg clamped to {} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S.23 arg ' + xtra + repr(arg))
+                    self.parseerror('S.23 arg {} out of range '.format(arg)
+                                    + xtra)
             arg = int(round(arg * REF_S_23))
         return arg
 
@@ -472,18 +532,20 @@ class fv1parse(object):
         """Fetch an 11 bit real argument."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M11:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M11:
                         arg = M11
-                    self.parsewarn('S1.9 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('S1.9 arg clamped to {0:#x} '.format(
+                                   arg) + xtra)
                 else:
-                    self.parseerror('Invalid S1.9 arg ' + xtra + hex(arg))
+                    self.parseerror('S1.9 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
             if arg < MIN_S1_9 or arg > MAX_S1_9:
                 if self.doclamp:
@@ -491,9 +553,11 @@ class fv1parse(object):
                         arg = MIN_S1_9
                     elif arg > MAX_S1_9:
                         arg = MAX_S1_9
-                    self.parsewarn('S1.9 arg clamped ' + xtra + repr(arg))
+                    self.parsewarn('S1.9 arg clamped to {} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S1.9 arg ' + xtra + repr(arg))
+                    self.parseerror('S1.9 arg {} out of range '.format(arg)
+                                    + xtra)
             arg = int(round(arg * REF_S1_9))
         return arg
 
@@ -503,16 +567,18 @@ class fv1parse(object):
         if mnemonic:
             xtra = 'for ' + mnemonic + ': '
         arg = self.__expression__()
-        if type(arg) is int:
+        if isinstance(arg, int):
             if arg < 0 or arg > M11:
                 if self.doclamp:
                     if arg < 0:
                         arg = 0
                     elif arg > M11:
                         arg = M11
-                    self.parsewarn('S4.6 arg clamped ' + xtra + hex(arg))
+                    self.parsewarn('S4.6 arg clamped to {0:#x} '.format(
+                                   arg) + xtra)
                 else:
-                    self.parseerror('Invalid S4.6 arg ' + xtra + hex(arg))
+                    self.parseerror('S4.6 arg {0:#x} out of range '.format(
+                                    arg) + xtra)
         else:
             if arg < MIN_S4_6 or arg > MAX_S4_6:
                 if self.doclamp:
@@ -520,9 +586,11 @@ class fv1parse(object):
                         arg = MIN_S4_6
                     elif arg > MAX_S4_6:
                         arg = MAX_S4_6
-                    self.parsewarn('S4.6 arg clamped ' + xtra + repr(arg))
+                    self.parsewarn('S4.6 arg clamped to {} '.format(arg)
+                                   + xtra)
                 else:
-                    self.parseerror('Invalid S4.6 arg ' + xtra + repr(arg))
+                    self.parseerror('S4.6 arg {} out of range '.format(arg)
+                                    + xtra)
             arg = int(round(arg * REF_S4_6))
         return arg
 
@@ -532,48 +600,80 @@ class fv1parse(object):
         # WLDS by clearing the MSB, and in WLDR by ORing with 0x2
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         lfo = self.__expression__()
-        if type(lfo) is not int or lfo < 0 or lfo > 3:
-            self.parseerror('Invalid LFO definition ' + xtra + repr(lfo))
+        if int(lfo) == lfo:
+            lfo = int(lfo)
+            if lfo < 0 or lfo > 3:
+                self.parseerror('Invalid LFO {0:#x} '.format(lfo) + xtra)
+        else:
+            self.parseerror('Invalid LFO {} '.format(lfo) + xtra)
         return lfo
 
     def __lfo_sinfreq__(self, mnemonic=''):
         """Fetch a sine LFO frequency value."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         freq = self.__expression__()
-        if type(freq) is int:
+        if int(freq) == freq:
+            freq = int(freq)
             if freq < 0 or freq > M9:
                 if self.doclamp:
                     if freq < 0:
                         freq = 0
                     elif freq > M9:
                         freq = M9
-                    self.parsewarn('SIN LFO frequency clamped '
-                                   + xtra + hex(freq))
+                    self.parsewarn('Frequency clamped to {0:#x} '.format(freq)
+                                    + xtra)
                 else:
-                    self.parseerror('Invalid SIN LFO frequency '
-                                   + xtra + hex(freq))
+                    self.parseerror('Invalid frequency {0:#x} '.format(freq)
+                                    + xtra)
         else:
-            self.parseerror('Invalid SIN LFO frequency ' + xtra + repr(freq))
+            self.parseerror('Invalid frequency {} '.format(freq)
+                            + xtra)
+        return freq
+
+    def __lfo_rampfreq__(self, mnemonic=''):
+        """Fetch a RMP LFO frequency value."""
+        xtra = ''
+        if mnemonic:
+            xtra = 'for ' + mnemonic
+        freq = self.__expression__()
+        if freq < -0.5 or freq > MAX_S_15:	# not quite right
+            freq = int(round(freq))
+            if freq < -0x8000 or freq > M15:
+                if self.doclamp:
+                    if freq < -0x8000:
+                        freq = -0x8000
+                    elif freq > M15:
+                        freq = M15
+                    self.parsewarn('Frequency clamped to {0:#x} '.format(freq)
+                                   + xtra)
+                else:
+                    self.parseerror('Invalid frequency {0:#x} '.format(freq)
+                                    + xtra)
+        else:
+            freq = int(round(arg * REF_S_15))
         return freq
 
     def __lfo_rampamp__(self, mnemonic=''):
         """Fetch a RMP LFO amplitude value."""
         xtra = ''
         if mnemonic:
-            xtra = 'for ' + mnemonic + ': '
+            xtra = 'for ' + mnemonic
         amp = self.__expression__()
         rampamps = {4096:0, 2048:1, 1024:2, 512:3, 0:0, 1:1, 2:2, 3:3}
-        if type(amp) is int:
+        if int(amp) == amp:
+            amp = int(amp)
             if amp in rampamps:
                 amp = rampamps[amp]
             else:
-                self.parseerror('Invalid RMP LFO amplitude '+xtra+repr(amp))
+                self.parseerror('Invalid amplitude {} '.format(amp)
+                                + xtra)
         else:
-            self.parseerror('Invalid RMP LFO amplitude '+xtra+repr(amp))
+            self.parseerror('Invalid amplitude {} '.format(amp)
+                            + xtra)
         return amp
 
     def __next__(self):
@@ -633,7 +733,7 @@ class fv1parse(object):
                                         'val': ival}
                         except:
                             self.scanerror('Invalid integer literal '
-                                    + repr(pref+ht))
+                                           + repr(pref+ht))
                     else:
                         self.scanerror('End of line scanning for integer')
                 elif stxt[0].isdigit(): # INTEGER or FLOAT
@@ -654,7 +754,7 @@ class fv1parse(object):
                                             'val': ival}
                             except:
                                 self.scanerror('Invalid numeric literal '
-                                        + repr(intpart+'.'+frac))
+                                               + repr(intpart+'.'+frac))
                         else:
                             self.scanerror('End of line scanning numeric')
                     elif self.spinreals and intpart in ['2', '1']:
@@ -666,7 +766,7 @@ class fv1parse(object):
                                         'val': ival}
                         except:
                             self.scanerror('Invalid Spin real literal '
-                                        + repr(intpart))
+                                           + repr(intpart))
                     else:	# assume integer
                         base = 10
                         if intpart.startswith('0x'):
@@ -681,7 +781,7 @@ class fv1parse(object):
                                         'val': ival}
                         except:
                             self.scanerror('Invalid integer literal '
-                                    + repr(intpart))
+                                           + repr(intpart))
 
                 elif stxt[0].isalpha(): # NAME or LABEL
                     lbl = self.linebuf.pop(0)
@@ -709,7 +809,7 @@ class fv1parse(object):
                     self.linebuf.pop(0) # ignore BOM
                 else:
                     self.scanerror('Unrecognised input '
-                                    + repr(self.linebuf.pop(0)))
+                                   + repr(self.linebuf.pop(0)))
 
     def scanerror(self, msg):
         """Emit scan error and abort assembly."""
@@ -792,7 +892,7 @@ class fv1parse(object):
                             'line':sourceline})
             self.icnt += 1
         elif mnemonic in ['RDA', 'WRA', 'WRAP',] :
-            addr = self.__s_15__(mnemonic)	# allow float memory addr
+            addr = self.__d_15__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
             mult = self.__s1_9__(mnemonic)
             self.pl.append({'cmd':[mnemonic, addr, mult], 'addr':self.icnt})
@@ -806,14 +906,14 @@ class fv1parse(object):
             self.__accept__('ARGSEP',opmsg)
             freq = self.__lfo_sinfreq__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
-            amp = self.__s_15__(mnemonic)
+            amp = self.__d_15__(mnemonic)
             self.pl.append({'cmd':[mnemonic, lfo, freq, amp],
                             'addr':self.icnt})
             self.icnt += 1
         elif mnemonic == 'WLDR':
             lfo = self.__lfo__()|0x02
             self.__accept__('ARGSEP',opmsg)
-            freq = self.__s_15__(mnemonic)
+            freq = self.__lfo_rampfreq__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
             amp = self.__lfo_rampamp__(mnemonic)
             self.pl.append({'cmd':[mnemonic, lfo, freq, amp],
@@ -828,15 +928,22 @@ class fv1parse(object):
                 lfo = self.__lfo__(mnemonic)
                 flags = 0b000010
                 arg = 0x00
-                if chotype != 0x03:
+                if chotype == 0x00:	# cho rda,lfo,flags,address
                     self.__accept__('ARGSEP',opmsg)
                     flags = self.__choflags__(lfo)
                     self.__accept__('ARGSEP',opmsg)
                     arg = self.__s_15__(mnemonic) # allow float memory addr
-                else:
+                elif chotype == 0x02:	# cho sof,lfo,flags,offset
+                    self.__accept__('ARGSEP',opmsg)
+                    flags = self.__choflags__(lfo)
+                    self.__accept__('ARGSEP',opmsg)
+                    arg = self.__s_15__(mnemonic)
+                elif chotype == 0x3:	# cho rdal,lfo[,flags]
                     if self.sym['type'] == 'ARGSEP':
                         self.__accept__('ARGSEP')
                         flags = self.__choflags__(lfo)
+                else:
+                    self.parseerror('Invalid CHO type {}'.format(chotype))
 
                 self.pl.append({'cmd':['CHO', chotype, lfo, flags, arg],
                                 'addr':self.icnt})
@@ -887,7 +994,7 @@ class fv1parse(object):
                                  + repr(label))
             if look in self.symtbl:
                 look = self.symtbl[look]
-                if type(look) is not str:
+                if not isinstance(look, str):
                     break
             else:
                 self.parseerror('Value ' + repr(look) 
@@ -902,6 +1009,10 @@ class fv1parse(object):
             acc = self.__or_expr__()
         except Exception as e:
             self.parseerror(str(e))
+
+        # check type before proceeding
+        if not isinstance(acc, (int, float)):
+            self.parseerror('Expression result {} invalid type'.format(acc))
         return acc
 
     def __or_expr__(self):
@@ -910,10 +1021,7 @@ class fv1parse(object):
         while self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '|':
             self.__next__()
             rarg = self.__xor_expr__()
-            if type(acc) is int and type(rarg) is int:
-                acc |= rarg
-            else:
-                self.parseerror('Invalid types for bitwise or (|)')
+            acc = acc | rarg
         return acc
 
     def __xor_expr__(self):
@@ -922,10 +1030,7 @@ class fv1parse(object):
         while self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '^':
             self.__next__()
             rarg = self.__and_expr__()
-            if type(acc) is int and type(rarg) is int:
-                acc ^= rarg
-            else:
-                self.parseerror('Invalid types for bitwise xor (^)')
+            acc = acc ^ rarg
         return acc
 
     def __and_expr__(self):
@@ -934,10 +1039,7 @@ class fv1parse(object):
         while self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '&':
             self.__next__()
             rarg = self.__shift_expr__()
-            if type(acc) is int and type(rarg) is int:
-                acc &= rarg
-            else:
-                self.parseerror('Invalid types for bitwise and (&)')
+            acc = acc & rarg
         return acc
 
     def __shift_expr__(self):
@@ -947,13 +1049,10 @@ class fv1parse(object):
             op = self.sym['stxt']
             self.__next__()
             rarg = self.__shift_expr__()
-            if type(acc) is int and type(rarg) is int:
-                if op == '<<':
-                    acc <<= rarg
-                else:
-                    acc >>= rarg
+            if op == '<<':
+                acc = acc << rarg
             else:
-                self.parseerror('Invalid types for shift ({})'.format(op))
+                acc = acc >> rarg
         return acc
 
     def __a_expr__(self):
@@ -963,13 +1062,13 @@ class fv1parse(object):
             op = self.sym['stxt']
             self.__next__()
             if op == '+':
-                acc += self.__m_expr__()
+                acc = acc + self.__m_expr__()
             else:
-                acc -= self.__m_expr__()
+                acc = acc - self.__m_expr__()
         return acc
 
     def __m_expr__(self):
-        """Parse a multiplication expression."""
+        """Parse a multiplicative expression."""
         acc = self.__u_expr__()
         while self.sym['type']=='OPERATOR' and self.sym['stxt'] in [
                                                           '*','//','/']:
@@ -977,28 +1076,27 @@ class fv1parse(object):
             self.__next__()
             rarg = self.__u_expr__()
             if op == '*':
-                acc *= rarg
+                acc = acc * rarg
             elif op == '//':
-                acc //= rarg
+                acc = acc // rarg
             else:
-                acc /= rarg
+                acc = acc / rarg
         return acc
 
     def __u_expr__(self):
         """Parse a unary operator."""
         acc = None
         if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] in [
-                                                     '+','-','~','!']:
+                                                     '+','-','~','!','INT']:
             op = self.sym['stxt']
             self.__next__()
             acc = self.__u_expr__()
             if op == '-':
                 acc = -acc
             elif op == '~' or op == '!':
-                if type(acc) is int:
-                    acc = ~acc
-                else:
-                    self.parseerror('Invalid type for unary {}'.format(op))
+                acc = ~acc
+            elif op == 'INT':
+                acc = int(round(acc))
         else:
             acc = self.__power__()
         return acc
@@ -1022,9 +1120,6 @@ class fv1parse(object):
             else:
                 self.parseerror("Expected ')' but saw {} {}".format(
                               self.sym['type'], repr(self.sym['txt'])))
-        elif self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == 'INT':
-            self.__next__()
-            ret = int(round(self.__expression__()))
         elif self.sym['type'] == 'NAME':
             stxt = self.sym['stxt']
             if stxt in self.symtbl:
@@ -1046,9 +1141,9 @@ class fv1parse(object):
             lbl = self.sym['stxt']
             oft = self.icnt
             if lbl in self.jmptbl and oft != self.jmptbl[lbl]:
-                self.parseerror('Label {} redefined'.format(lbl))
+                self.parseerror('Target {} redefined'.format(lbl))
             if lbl in self.symtbl:
-                self.parseerror('Label {} already assigned'.format(lbl))
+                self.parseerror('Target {} already assigned'.format(lbl))
             self.jmptbl[lbl] = oft
             self.__next__()
         else:
@@ -1085,20 +1180,15 @@ class fv1parse(object):
         # then fetch the second argument
         arg2 = self.__expression__()
          
-        # now process assembler directive
-        if type(arg2) is str:
-            if arg2 in self.symtbl:
-                arg2 = self.symtbl[arg2]
-            else:
-                self.parseerror('Label {} undefined'.format(arg2))
         if typ == 'MEM':
-            # check memory and assign the extra labels
-            baseval = self.delaymem
-            if type(arg2) is not int:
+            if int(arg2) == arg2:
+                arg2 = int(arg2)
+            else:
                 self.parseerror('Memory ' + repr(arg1)
                                   + ' length ' + repr(arg2) 
                                   + ' not integer')
-                
+            # check memory and assign the extra labels
+            baseval = self.delaymem
             if arg2 < 0 or arg2 > DELAYSIZE:	# not as in datasheet
                 if self.doclamp:
                     if arg2 < 0:
@@ -1144,22 +1234,18 @@ class fv1parse(object):
                         if dest > iloc:
                             oft = dest - iloc - 1
                             if oft > M6:
-                                self.parseerror('Offset from SKP to ' 
-                                                + repr(i['target'])
-                                                + ' (' + hex(oft) 
-                                                + ') too large',
-                                                i['line'])
+                                self.parseerror(
+                     'Offset from SKP to {0} ({1:#x}) too large'.format(
+                                                i['target'],oft), i['line'])
                             else:
                                 i['cmd'][2] = oft
                         else:
-                            self.parseerror('Target '
-                                            + repr(i['target'])
-                                            +' does not follow SKP',
-                                            i['line'])
+                            self.parseerror(
+                     'Target {0} does not follow SKP'.format(i['target']),
+                                                i['line'])
                     else:
-                        self.parseerror('Undefined target for SKP ' 
-                                        + repr(i['target']),
-                                        i['line'])
+                        self.parseerror('Undefined target {} for SKP'.format(
+                                        i['target']), i['line'])
                 else:
                     pass	# assume offset is immediate
         self.__mkopcodes__()
