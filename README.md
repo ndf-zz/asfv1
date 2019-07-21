@@ -1012,10 +1012,10 @@ Example:
 
 Adjust RMP LFO with coefficients FREQUENCY and AMPLITUDE.
 
-	LFO:		2bit integer (RMP0 or RMP1)
+	LFO:		1bit integer (0 = RMP0 or 1 = RMP1)
 	FREQUENCY:	Real S_15 or Signed 16bit integer
 	AMPLITUDE:	2bit integer (0=4096, 1=2048, 2=1024, 3=512)
-	Assembly:	LFO<<29 | FREQUENCY<<13 | AMPLITUDE<<5 | 0b10010
+	Assembly:	(LFO|0x2)<<29 | FREQUENCY<<13 | AMPLITUDE<<5 | 0b10010
 
 Notes:
 
@@ -1036,14 +1036,18 @@ Example:
 
 ### jam LFO
 
-Reset specified LFO to start.
+Reset specified ramp LFO to start.
 
-	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
-	Assembly:	LFO<<6 | 0b10011
+	LFO:		1bit integer (0 = RMP0 or 1 = RMP1)
+	Assembly:	(LFO|0x2)<<6 | 0b10011
+
+Note:
+
+- LFO may also be set using pre-defined labels RMP0 and RMP1.
 
 Example:	
 
-		jam	SIN0		; reset SIN0 lfo
+		jam	RMP0		; reset RMP0 lfo
 
 ### cho rda, LFO, FLAGS, ADDRESS
 
