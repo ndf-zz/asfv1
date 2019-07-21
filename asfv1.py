@@ -32,6 +32,7 @@ import struct
 VERSION = '1.2.1'
 PROGLEN = 128
 DELAYSIZE = 32767
+MAXERR = 10	# abort assembly if too many errors found
 
 # Fixed point reals SN.D with one sign bit (S),
 # N integer bits and D fractional bits:
@@ -161,17 +162,19 @@ def op_gen(mcode):
 
 class fv1parse(object):
     def __init__(self, source=None, clamp=True, skip=False,
-                 spinreals=False, wfunc=None):
+                 spinreals=False, wfunc=None, efunc=None):
         self.program = bytearray(512)
         self.doclamp = clamp
         self.doskip = skip
         self.spinreals = spinreals
         self.dowarn = wfunc
+        self.doerror = efunc
         self.delaymem = 0
-        self.prevline = 0
-        self.sline = 0
+        self.prevline = 0	# line number for last accepted symbol
+        self.sline = 0		# line number of current symbol
         self.icnt = 0
         self.sym = None
+        self.ecount = 0
         self.source = source.split('\n')
         self.linebuf = []
         self.pl = []	# parse list
@@ -292,9 +295,11 @@ class fv1parse(object):
             if reg < 0 or reg > 63:
                 self.parseerror('Register {0:#x} out of range '.format(reg)
                                 + xtra)
+                reg = 0
         else:
-            self.parseerror('Invalid register {} '.format(repr(reg))
+            self.parseerror('Invalid register {} '.format(reg)
                             + xtra)
+            reg = 0
         return reg
 
     def __d_15__(self,mnemonic=''):
@@ -316,6 +321,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid address {0:#x} '.format(oft)
                                     + xtra)
+                    oft = 0
         else:
             oft = int(round(oft * REF_S_15))
         return oft
@@ -331,9 +337,11 @@ class fv1parse(object):
             if oft < 0 or oft > M6:
                 self.parseerror('Offset {} out of range '.format(oft)
                                 + xtra)
+                oft = 0
         else:
-            self.parseerror('Invalid offset {} '.format(repr(oft))
+            self.parseerror('Invalid offset {} '.format(oft)
                             + xtra)
+            oft = 0
         return oft
 
     def __condition__(self, mnemonic=''):
@@ -347,10 +355,24 @@ class fv1parse(object):
             if cond < 0 or cond > M5:
                 self.parseerror('Condition {0:#x} out of range '.format(
                                 cond) + xtra)
+                cond = 0
         else:
-            self.parseerror('Invalid condition {} '.format(repr(cond))
+            self.parseerror('Invalid condition {} '.format(cond)
                             + xtra)
+            cond = 0
         return cond
+
+    def __chotype__(self):
+        """Fetch CHO type code."""
+        # this is not an operand - the symbol text is examined directly
+        chotype = self.sym['stxt']
+        self.__next__()
+        if chotype in ['RDA','SOF','RDAL']:
+            chotype = self.symtbl[chotype]
+        else:
+            self.parseerror('Invalid CHO type {}'.format(chotype))
+            chotype = 0
+        return chotype
 
     def __choflags__(self, lfo=None):
         """Fetch CHO condition flags."""
@@ -359,8 +381,10 @@ class fv1parse(object):
             flags = int(flags)
             if flags < 0 or flags > M6:
                 self.parseerror('Invalid flags {0:#x} for CHO'.format(flags))
+                flags = 0
         else:
-            self.parseerror('Invalid flags {} for CHO'.format(repr(flags)))
+            self.parseerror('Invalid flags {} for CHO'.format(flags))
+            flags = 0
         oflags = flags
         if lfo&0x02: # RMP0/RMP1
             flags = oflags & 0x3e
@@ -392,6 +416,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S1.14 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             if arg < MIN_S1_14 or arg > MAX_S1_14:
                 if self.doclamp:
@@ -404,6 +429,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S1.14 arg {} out of range '.format(arg)
                                     + xtra)
+                    arg = 0
             arg = int(round(arg * REF_S1_14))
         return arg
 
@@ -425,6 +451,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S.10 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             if arg < MIN_S_10 or arg > MAX_S_10:
                 if self.doclamp:
@@ -437,6 +464,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S.10 arg {} out of range '.format(arg)
                                     + xtra)
+                    arg = 0
             arg = int(round(arg * REF_S_10))
         return arg
 
@@ -458,6 +486,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S.15 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             if arg < MIN_S_15 or arg > MAX_S_15:
                 if self.doclamp:
@@ -470,6 +499,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S.15 arg {} out of range '.format(arg)
                                     + xtra)
+                    arg = 0
             arg = int(round(arg * REF_S_15))
         return arg
 
@@ -491,8 +521,10 @@ class fv1parse(object):
                 else:
                     self.parseerror('U.32 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             self.parseerror('Invalid U.32 arg {} '.format(arg) + xtra)
+            arg = 0
         return arg
 
     def __s_23__(self, mnemonic=''):
@@ -513,6 +545,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S.23 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             if arg < MIN_S_23 or arg > MAX_S_23:
                 if self.doclamp:
@@ -525,6 +558,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S.23 arg {} out of range '.format(arg)
                                     + xtra)
+                    arg = 0
             arg = int(round(arg * REF_S_23))
         return arg
 
@@ -546,6 +580,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S1.9 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             if arg < MIN_S1_9 or arg > MAX_S1_9:
                 if self.doclamp:
@@ -558,6 +593,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S1.9 arg {} out of range '.format(arg)
                                     + xtra)
+                    arg = 0
             arg = int(round(arg * REF_S1_9))
         return arg
 
@@ -579,6 +615,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S4.6 arg {0:#x} out of range '.format(
                                     arg) + xtra)
+                    arg = 0
         else:
             if arg < MIN_S4_6 or arg > MAX_S4_6:
                 if self.doclamp:
@@ -591,6 +628,7 @@ class fv1parse(object):
                 else:
                     self.parseerror('S4.6 arg {} out of range '.format(arg)
                                     + xtra)
+                    arg = 0
             arg = int(round(arg * REF_S4_6))
         return arg
 
@@ -606,8 +644,10 @@ class fv1parse(object):
             lfo = int(lfo)
             if lfo < 0 or lfo > 3:
                 self.parseerror('Invalid LFO {0:#x} '.format(lfo) + xtra)
+                lfo = 0
         else:
             self.parseerror('Invalid LFO {} '.format(lfo) + xtra)
+            lfo = 0
         return lfo
 
     def __lfo_sinfreq__(self, mnemonic=''):
@@ -629,9 +669,11 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid frequency {0:#x} '.format(freq)
                                     + xtra)
+                    freq = 0
         else:
             self.parseerror('Invalid frequency {} '.format(freq)
                             + xtra)
+            freq = 0
         return freq
 
     def __lfo_rampfreq__(self, mnemonic=''):
@@ -653,8 +695,9 @@ class fv1parse(object):
                 else:
                     self.parseerror('Invalid frequency {0:#x} '.format(freq)
                                     + xtra)
+                    freq = 0
         else:
-            freq = int(round(arg * REF_S_15))
+            freq = int(round(freq * REF_S_15))
         return freq
 
     def __lfo_rampamp__(self, mnemonic=''):
@@ -671,9 +714,11 @@ class fv1parse(object):
             else:
                 self.parseerror('Invalid amplitude {} '.format(amp)
                                 + xtra)
+                amp = 0
         else:
             self.parseerror('Invalid amplitude {} '.format(amp)
                             + xtra)
+            amp = 0
         return amp
 
     def __next__(self):
@@ -704,10 +749,12 @@ class fv1parse(object):
                                 'val': 0x0}
                 elif stxt in ['<','>','*','/']:
                     optxt = self.linebuf.pop(0)
-                    if self.linebuf[0] == optxt: # **, //, <<, >>
-                        optxt += self.linebuf.pop(0)
-                    if optxt in ['<','>']:
-                        self.scanerror('Invalid operator ' + repr(optxt))
+                    if len(self.linebuf) > 0:
+                        if self.linebuf[0] == optxt: # **, //, <<, >>
+                            optxt += self.linebuf.pop(0)
+                        if optxt in ['<','>']:
+                            self.scanerror('Invalid operator ' + optxt)
+                            optxt += optxt
                     self.sym = {'type': 'OPERATOR',
                                 'txt': optxt,
                                 'stxt': optxt,
@@ -725,49 +772,57 @@ class fv1parse(object):
                         base = 16
                     if len(self.linebuf) > 0:
                         ht = self.linebuf.pop(0)
+                        ival = 0
                         try:
                             ival = int(ht.replace('_',''),base)
-                            self.sym = {'type': 'INTEGER',
+                        except:
+                            self.scanerror('Invalid integer literal '
+                                           + pref+ht)
+                        self.sym = {'type': 'INTEGER',
                                         'txt': pref+ht,
                                         'stxt': pref+ht,
                                         'val': ival}
-                        except:
-                            self.scanerror('Invalid integer literal '
-                                           + repr(pref+ht))
                     else:
                         self.scanerror('End of line scanning for integer')
+                        self.sym = {'type': 'INTEGER',
+                                        'txt': pref,
+                                        'stxt': pref,
+                                        'val': 0}
                 elif stxt[0].isdigit(): # INTEGER or FLOAT
                     intpart = self.linebuf.pop(0).lower()
+                    ival = 0.0
                     if len(self.linebuf) > 0 and self.linebuf[0] == '.':
                         self.linebuf.pop(0)
                         if len(self.linebuf) > 0:
                             frac = self.linebuf.pop(0)
-                            if frac.endswith('e'):
-                                esign = self.linebuf.pop(0)
-                                eval = self.linebuf.pop(0)
-                                frac = frac+esign+eval
+                            if frac.endswith('e') and len(self.linebuf) > 0:
+                                epart = self.linebuf.pop(0)
+                                if epart in ['+','-'] and len(self.linebuf) > 0:
+                                    epart += self.linebuf.pop(0)
+                                frac = frac+epart
                             try:
                                 ival = float(intpart+'.'+frac)
-                                self.sym = {'type': 'FLOAT',
-                                            'txt': intpart+'.'+frac,
-                                            'stxt': intpart+'.'+frac,
-                                            'val': ival}
                             except:
                                 self.scanerror('Invalid numeric literal '
-                                               + repr(intpart+'.'+frac))
+                                               + intpart+'.'+frac)
+                            self.sym = {'type': 'FLOAT',
+                                        'txt': intpart+'.'+frac,
+                                        'stxt': intpart+'.'+frac,
+                                        'val': ival}
                         else:
                             self.scanerror('End of line scanning numeric')
-                    elif self.spinreals and intpart in ['2', '1']:
-                        try:
-                            ival = float(intpart)
                             self.sym = {'type': 'FLOAT',
+                                        'txt': intpart+'.0',
                                         'stxt': intpart+'.0',
-                                        'txt': intpart,
                                         'val': ival}
-                        except:
-                            self.scanerror('Invalid Spin real literal '
-                                           + repr(intpart))
+                    elif self.spinreals and intpart in ['2', '1']:
+                        ival = float(intpart)
+                        self.sym = {'type': 'FLOAT',
+                                    'stxt': intpart+'.0',
+                                    'txt': intpart,
+                                    'val': ival}
                     else:	# assume integer
+                        ival = 0
                         base = 10
                         if intpart.startswith('0x'):
                             base = 16
@@ -775,13 +830,13 @@ class fv1parse(object):
                             base = 2
                         try:
                             ival = int(intpart, base)
-                            self.sym = {'type': 'INTEGER',
-                                        'txt': intpart,
-                                        'stxt': intpart,
-                                        'val': ival}
                         except:
                             self.scanerror('Invalid integer literal '
-                                           + repr(intpart))
+                                           + intpart)
+                        self.sym = {'type': 'INTEGER',
+                                    'txt': intpart,
+                                    'stxt': intpart,
+                                    'val': ival}
 
                 elif stxt[0].isalpha(): # NAME or LABEL
                     lbl = self.linebuf.pop(0)
@@ -808,13 +863,16 @@ class fv1parse(object):
                 elif self.linebuf[0] == '\ufeff':
                     self.linebuf.pop(0) # ignore BOM
                 else:
-                    self.scanerror('Unrecognised input '
-                                   + repr(self.linebuf.pop(0)))
+                    self.scanerror('Unrecognised input {}'.format(
+                                   self.linebuf.pop(0)))
 
     def scanerror(self, msg):
         """Emit scan error and abort assembly."""
-        error('scan error: ' + msg + ' on line {}'.format(self.sline))
-        sys.exit(-1)
+        self.doerror('scan error: ' + msg + ' on line {}'.format(self.sline))
+        self.ecount += 1
+        if self.ecount > MAXERR:
+            self.doerror('too many errors, aborting.')
+            sys.exit(-1)
 
     def parsewarn(self, msg, line=None):
         """Emit parse warning."""
@@ -826,8 +884,11 @@ class fv1parse(object):
         """Emit parse error and abort assembly."""
         if line is None:
             line = self.prevline
-        error('parse error: ' + msg + ' on line {}'.format(line))
-        sys.exit(-2)
+        self.doerror('parse error: ' + msg + ' on line {}'.format(line))
+        self.ecount += 1
+        if self.ecount > MAXERR:
+            self.doerror('too many errors, aborting.')
+            sys.exit(-2)
 
     def __accept__(self,stype,message=None):
         """Accept the next symbol if type matches stype."""
@@ -838,7 +899,7 @@ class fv1parse(object):
                 self.parseerror(message)
             else:
                 self.parseerror('Expected {} but saw {} {}'.format(
-                             stype, self.sym['type'], repr(self.sym['txt'])),
+                             stype, self.sym['type'], self.sym['txt']),
                                  self.sline)
 
     def __instruction__(self):
@@ -920,34 +981,29 @@ class fv1parse(object):
                             'addr':self.icnt})
             self.icnt += 1
         elif mnemonic == 'CHO':
-            if self.sym['type'] == 'MNEMONIC' or self.sym['stxt'] in [
-                                                 'SOF', 'RDA', 'RDAL']:
-                chotype = self.symtbl[self.sym['stxt']]
-                self.__next__()
+            chotype = self.__chotype__()
+            self.__accept__('ARGSEP',opmsg)
+            lfo = self.__lfo__(mnemonic)
+            flags = 0b000010
+            arg = 0x00
+            if chotype == 0x00:	# cho rda,lfo,flags,address
                 self.__accept__('ARGSEP',opmsg)
-                lfo = self.__lfo__(mnemonic)
-                flags = 0b000010
-                arg = 0x00
-                if chotype == 0x00:	# cho rda,lfo,flags,address
-                    self.__accept__('ARGSEP',opmsg)
+                flags = self.__choflags__(lfo)
+                self.__accept__('ARGSEP',opmsg)
+                arg = self.__s_15__(mnemonic) # allow float memory addr
+            elif chotype == 0x02:	# cho sof,lfo,flags,offset
+                self.__accept__('ARGSEP',opmsg)
+                flags = self.__choflags__(lfo)
+                self.__accept__('ARGSEP',opmsg)
+                arg = self.__s_15__(mnemonic)
+            elif chotype == 0x3:	# cho rdal,lfo[,flags]
+                if self.sym['type'] == 'ARGSEP':
+                    self.__accept__('ARGSEP')
                     flags = self.__choflags__(lfo)
-                    self.__accept__('ARGSEP',opmsg)
-                    arg = self.__s_15__(mnemonic) # allow float memory addr
-                elif chotype == 0x02:	# cho sof,lfo,flags,offset
-                    self.__accept__('ARGSEP',opmsg)
-                    flags = self.__choflags__(lfo)
-                    self.__accept__('ARGSEP',opmsg)
-                    arg = self.__s_15__(mnemonic)
-                elif chotype == 0x3:	# cho rdal,lfo[,flags]
-                    if self.sym['type'] == 'ARGSEP':
-                        self.__accept__('ARGSEP')
-                        flags = self.__choflags__(lfo)
-                else:
-                    self.parseerror('Invalid CHO type {}'.format(chotype))
 
-                self.pl.append({'cmd':['CHO', chotype, lfo, flags, arg],
-                                'addr':self.icnt})
-                self.icnt += 1
+            self.pl.append({'cmd':['CHO', chotype, lfo, flags, arg],
+                            'addr':self.icnt})
+            self.icnt += 1
         elif mnemonic == 'JAM':
             lfo = self.__lfo__(mnemonic)|0x02
             self.pl.append({'cmd':[mnemonic, lfo], 'addr':self.icnt})
@@ -980,9 +1036,16 @@ class fv1parse(object):
             self.icnt += 1
         else:
             self.parseerror('Unexpected instruction {}'.format(
-                             repr(self.sym['txt'])))
+                             self.sym['txt']))
+            sys.exit(-4) # this is a major program error
+        
         if self.sym['type'] == 'ARGSEP':
-            self.parseerror('Excess operands for ' + mnemonic)
+            self.parseerror('Excess operands skipped for ' + mnemonic)
+            # skip to next checkpoint
+            while self.sym['type'] not in ['EOF', 'MNEMONIC',
+                                           'ASSEMBLER', 'LABEL']:
+                self.__next__()
+
 
     def __deref__(self, label):
         """Return a value defined in the symbol table."""
@@ -991,20 +1054,25 @@ class fv1parse(object):
         while True:
             if look in seen:
                 self.parseerror('Circular definition of label '
-                                 + repr(label))
+                                 + label)
             if look in self.symtbl:
                 look = self.symtbl[look]
                 if not isinstance(look, str):
                     break
             else:
-                self.parseerror('Value ' + repr(look) 
-                      + ' undefined for label ' + repr(label))
+                self.parseerror('Value ' + look 
+                      + ' undefined for label ' + label)
             seen.add(label)
         return look
 
     def __expression__(self):
         """Parse an operand expression."""
-        acc = None
+        if self.sym['type'] in ['ASSEMBLER','EOF','MNEMONIC','LABEL']:
+            self.parseerror('Unexpected {}'.format(self.sym['type']),
+                            self.sline)
+            return 0
+
+        acc = 0
         try:
             acc = self.__or_expr__()
         except Exception as e:
@@ -1013,6 +1081,7 @@ class fv1parse(object):
         # check type before proceeding
         if not isinstance(acc, (int, float)):
             self.parseerror('Expression result {} invalid type'.format(acc))
+            acc = 0	# replace erroneous value with 0 and continue
         return acc
 
     def __or_expr__(self):
@@ -1085,7 +1154,7 @@ class fv1parse(object):
 
     def __u_expr__(self):
         """Parse a unary operator."""
-        acc = None
+        acc = 0
         if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] in [
                                                      '+','-','~','!','INT']:
             op = self.sym['stxt']
@@ -1111,7 +1180,7 @@ class fv1parse(object):
 
     def __atom__(self):
         """Parse an atom or start a new expression."""
-        ret = None
+        ret = 0
         if self.sym['type'] == 'OPERATOR' and self.sym['stxt'] == '(':
             self.__next__()
             ret = self.__expression__()
@@ -1119,36 +1188,43 @@ class fv1parse(object):
                 self.__next__()
             else:
                 self.parseerror("Expected ')' but saw {} {}".format(
-                              self.sym['type'], repr(self.sym['txt'])))
+                              self.sym['type'], self.sym['txt']),
+                              self.sline)
         elif self.sym['type'] == 'NAME':
             stxt = self.sym['stxt']
             if stxt in self.symtbl:
                 ret = self.__deref__(stxt)
                 self.__next__()
             else:
-                self.parseerror('Undefined label ' + repr(self.sym['txt']))
+                self.parseerror('Undefined label ' + self.sym['txt'],
+                                 self.sline)
+                self.__next__() # accept and replace
+                ret = 0
         elif self.sym['type'] in ['INTEGER', 'FLOAT']:
             ret = self.sym['val']
             self.__next__()
         else:
-            self.parseerror('Expected LABEL or NUMBER but saw {} {}'.format(
-                              self.sym['type'], repr(self.sym['txt'])))
+            self.parseerror('Unexpected {} {} in expression'.format(
+                              self.sym['type'], self.sym['txt']),
+                              self.sline)
+            if self.sym['type'] not in ['ARGSEP', 'LABEL', 'MNEMONIC',
+                                        'EOF', 'ASSEMBLER']:
+                self.__next__()	# skip the problem
+            ret = 0
         return ret
 
     def __label__(self):
         """Parse a label assignment."""
-        if self.sym['type'] == 'LABEL':
-            lbl = self.sym['stxt']
-            oft = self.icnt
-            if lbl in self.jmptbl and oft != self.jmptbl[lbl]:
-                self.parseerror('Target {} redefined'.format(lbl))
-            if lbl in self.symtbl:
-                self.parseerror('Target {} already assigned'.format(lbl))
-            self.jmptbl[lbl] = oft
-            self.__next__()
-        else:
-            self.parseerror('Expected LABEL but saw {} {}'.format(
-                              self.sym['type'], repr(self.sym['txt'])))
+        lbl = self.sym['stxt']
+        oft = self.icnt
+        if lbl in self.jmptbl and oft != self.jmptbl[lbl]:
+            self.parseerror('Target {} redefined'.format(lbl),
+                            self.sline)
+        if lbl in self.symtbl:
+            self.parseerror('Target {} already assigned'.format(lbl),
+                            self.sline)
+        self.jmptbl[lbl] = oft
+        self.__next__()
 
     def __assembler__(self):
         """Parse mem or equ statement."""
@@ -1163,19 +1239,27 @@ class fv1parse(object):
             self.__next__()
         else:
             self.parseerror('Expected EQU or MEM but saw {} {}'.format(
-                             self.sym['type'], repr(self.sym['txt'])))
+                             self.sym['type'], self.sym['txt']),
+                             self.sline)
+            return
+
         if arg1 is None:
             if self.sym['type'] == 'NAME':
                 arg1 = self.sym['stxt']
                 self.__next__()
             else:
                 self.parseerror('Expected NAME but saw {} {}'.format(
-                             self.sym['type'], repr(self.sym['txt'])))
+                             self.sym['type'], self.sym['txt']))
+                return
 
         # strip the modifier and check for re-definition
         arg1 = arg1.rstrip('^#')
+        if arg1 in ['RDAL','SOF','RDA']:	# disallowed re-assignments
+            self.parseerror('Reserved label {} cannot be re-defined.'.format(
+                            arg1))
+            return
         if arg1 in self.symtbl:
-            self.parsewarn('Label ' + repr(arg1) + ' re-defined')
+            self.parsewarn('Label ' + arg1 + ' re-defined')
 
         # then fetch the second argument
         arg2 = self.__expression__()
@@ -1184,9 +1268,9 @@ class fv1parse(object):
             if int(arg2) == arg2:
                 arg2 = int(arg2)
             else:
-                self.parseerror('Memory ' + repr(arg1)
-                                  + ' length ' + repr(arg2) 
-                                  + ' not integer')
+                self.parseerror('Memory ' + arg1 + ' length ' + arg2
+                                + ' not integer')
+                arg2 = 0
             # check memory and assign the extra labels
             baseval = self.delaymem
             if arg2 < 0 or arg2 > DELAYSIZE:	# not as in datasheet
@@ -1197,9 +1281,10 @@ class fv1parse(object):
                         arg2 = DELAYSIZE
                 else:
                     self.parseerror('Invalid memory size {}'.format(arg2))
+                    arg2 = 0
             top = self.delaymem + arg2	# top ptr goes to largest addr+1
             if self.delaymem > DELAYSIZE:
-                self.parseerror('Delay exhausted.',self.prevline)
+                self.parseerror('Delay memory exhausted.',self.prevline)
             elif top > DELAYSIZE:
                 self.parseerror(
             'Delay exhausted: requested {} exceeds {} available'.format(
@@ -1222,8 +1307,9 @@ class fv1parse(object):
             elif self.sym['type'] == 'NAME' or self.sym['type'] == 'ASSEMBLER':
                 self.__assembler__()
             else:
-                self.parseerror('Unexpected input {} {}'.format(
-                                  self.sym['type'], repr(self.sym['txt'])))
+                self.parseerror('Unexpected {} {}'.format(
+                                  self.sym['type'], self.sym['txt']))
+                self.__next__() # skip the invalid input
         # patch skip targets if required
         for i in self.pl:
             if i['cmd'][0] == 'SKP':
@@ -1248,6 +1334,9 @@ class fv1parse(object):
                                         i['target']), i['line'])
                 else:
                     pass	# assume offset is immediate
+        if self.ecount > 0:
+            self.doerror('errors in input, assembly aborted')
+            sys.exit(-3)
         self.__mkopcodes__()
 
 def main():
@@ -1302,9 +1391,13 @@ def main():
         dowarn('info: Input encoding set to UTF-16LE')
         encoding = 'utf-16le'
 
+    # warn if spinreal option used
+    if args.spinreals:
+        dowarn('warning: SpinASM compatibility - literals 2,1 read as 2.0,1.0')
+
     fp = fv1parse(inbuf.decode(encoding,'replace'),
                   clamp=args.clamp, skip=args.noskip,
-                  spinreals=args.spinreals, wfunc=dowarn)
+                  spinreals=args.spinreals, wfunc=dowarn,efunc=error)
     fp.parse()
     
     ofile = None
