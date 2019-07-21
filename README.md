@@ -67,7 +67,7 @@ entries all generate the same code:
 	or	13140096			; unsigned 24bit int in decimal
 	or	1<<23|2**22|1<<19|2**15|1<<7	; unsigned 24bit int by bitwise or
 	or	0b110010001000000010000000	; unsigned 24bit int in binary
-	or	(int-0.4335784912109375*2**23)&0xffffff ; S_23 to unsigned 24bit conversion
+	or	int(-0.4335784912109375*2**23)&0xffffff ; S_23 to unsigned 24bit conversion
 
 Integer values may be entered with a base prefix (0x, $, 0b, %) or
 a plain decimal number. Unlike SpinASM, entries -1, 1, -2 and 2 are
@@ -131,7 +131,7 @@ the unallocated program space is padded with 'NOP' instructions
 For [example](example.asm):
 
 	; A complete, but useless FV-1 assembly program
-	MEM	delay	int 32767*3/5	; ~0.6 sec delay
+	MEM	delay	int(32767*3/5)	; ~0.6 sec delay
 	EQU	input	ADCL		; read input from ADCL
 	EQU	output	DACL		; write output to DACL
 	EQU	vol	REG0		; use REG0 for volume
@@ -250,7 +250,7 @@ or a parse error will be generated:
 	parse error: Memory 'INVALID' length 123.4556 not integer on line ...
 
 	MEM	third	32767//3	; valid due to integer divide
-	MEM	d0_13	int 0.13*32767	; valid due to explicit type cast
+	MEM	d0_13	int(0.13*32767)	; valid due to explicit type cast
 
 The assembler keeps track of allocated memory, placing each new
 segment immediately after those previously defined. Each segment 
@@ -358,25 +358,20 @@ value. The sizes and types are specific to each instruction
 ### Operand Expressions
 
 Operand expressions are any valid combination
-of labels, numbers and the following operators,
-listed in order of precedence from lowest to highest:
+of labels, numbers, parentheses and the following
+operators, listed from highest to lowest precedence. Operators
+on the same line have the same precedence, and are evaluated
+left to right - except for '**' power which works as in the
+python intepreter.
 
-	( )	parentheses
-	int	unary typecast (round float value to nearest integer)
-	|	bitwise or
-	^	bitwise xor
-	&	bitwise and
-	<<	bitwise left shift
-	>>	bitwise right shift
-	+	add
-	-	subtract
-	*	multiply
-	//	integer divide
-	/	divide
-	-	unary minus
-	+	unary plus
-	~	unary negate (! in spinasm)
-	**	power
+Operator | Function | Note
+--- | --- | ---
+`| ^ &`	|	bitwise or, xor, and	| valid for integers only
+`<< >>` |	shift left, shift right	| valid for integers only
+`+ -'	|	add, subtract	|
+`* // /` |	multiply, divide	| `//` forces integer divide
+`+ - ~ int`	|	unary plus, minus, invert bits, integer cast	| `!` is an alias for `~`
+`**`	|	power	| 
 
 The following numeric entry formats are recognised:
 
@@ -393,10 +388,10 @@ integer, which is used for the instruction operand
 unchanged or a floating point value which is later converted
 to the closest fixed-point integer of the required size
 (see [Fixed Point Conversion](#fixed-point-conversion) below).
-The unary `int` operator will force a floating-point expression value
+The unary `int` operator will force a floating-point value
 to be rounded and converted to the nearest integer:
 
-	MEM	d0_23	int 0.23*0x8000	; ~0.23 second delay = 7537 samples
+	MEM	d0_23	int(0.23*0x8000) ; ~0.23 second delay = 7537 samples
 
 More formally, a valid operand expression matches the
 following grammar:
@@ -408,9 +403,9 @@ following grammar:
 	shift_expr ::= a_expr | shift_expr "<<" a_expr | shift_expr ">>" a_expr
 	a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
 	m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
-	u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
+	u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr | "int" u_expr
 	power ::= atom ["**" u_expr]
-	atom ::= label | literal | "(" expression ")" | "int" expression
+	atom ::= label | literal | "(" expression ")"
 
 Where label is a text label, and literal is a number. Expressions 
 are parsed and evaluated in-place by asfv1. All labels must be defined
