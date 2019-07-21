@@ -12,7 +12,7 @@ to use the Spin provided IDE.
 
 ## Requirements
 
-- Python \>= 3
+- Python \>= 2.6
 
 
 ## Installation
