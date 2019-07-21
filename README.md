@@ -74,12 +74,7 @@ a plain decimal number. Unlike SpinASM, entries -1, 1, -2 and 2 are
 always read as integer literals. To get the Spin-like behaviour
 in asfv1, use option -s (--spinreals).
 
-Operand expressions support arbitrary arithmetic and
-bitwise operators. Invalid combinations of real numbers and
-integer values will generate an error eg:
-
-	parse error: Invalid types for bitwise or (|) on line ...
-
+Operand expressions support arbitrary arithmetic and bitwise operators.
 By default, immediate values that would overflow available
 argument sizes will generate an error and abort assembly. Command
 line option -c (--clamp) will instead restrict the value, where
