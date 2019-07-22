@@ -40,7 +40,7 @@ import shlex
 import struct
 
 # Constants
-VERSION = '1.2.2'
+VERSION = '1.2.3'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAXERR = 10	# abort assembly if too many errors found
