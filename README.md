@@ -90,7 +90,7 @@ For [example](example.asm):
 When assembled with asfv1, the resulting machine code contains
 9 instructions and padding with NOP instructions:
 
-	$ asfv1 -q -b -n example.asm example.bin
+	$ asfv1 -q example.asm example.bin
 	$ hd example.bin 
 	00000000  80 40 00 11 00 00 02 05  00 00 04 06 00 00 02 85  |.@..............|
 	00000010  00 00 04 0a 00 00 00 02  20 04 cc c0 20 09 99 80  |........ ... ...|
@@ -939,7 +939,7 @@ Example:
 
 Adjust SIN LFO with coefficients FREQUENCY and AMPLITUDE.
 
-	LFO:		1bit integer (SIN0 or SIN1)
+	LFO:		1bit integer (0 = SIN0 or 1 = SIN1)
 	FREQUENCY:	Unsigned 9bit integer
 	AMPLITUDE:	Real S_15 or Unsigned 15bit integer
 	Assembly:	LFO<<29 | FREQUENCY<<20 | AMPLITUDE<<5 | 0b10010
@@ -983,6 +983,8 @@ Adjust RMP LFO with coefficients FREQUENCY and AMPLITUDE.
 
 Notes:
 
+ - LFO may also be set using pre-defined labels RMP0 and RMP1.
+
  - AMPLITUDE may also be set by entering one of the specific
    integer values: 4096, 2048, 1024 or 512.
 
@@ -1016,7 +1018,7 @@ Example:
 ### cho rda, LFO, FLAGS, ADDRESS
 
 Read from delay memory at ADDRESS + offset (LFO) according to
-FLAGS, multiply the result by coeff (LFO) and save value to ACC.
+FLAGS, multiply the result by coeff (LFO) and accumulate.
 
 	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
 	FLAGS:		6bit integer flags
@@ -1025,7 +1027,7 @@ FLAGS, multiply the result by coeff (LFO) and save value to ACC.
 
 Action:
 
-	ACC <- coeff (LFO) * delay[ADDRESS + offset (LFO)]
+	ACC <- ACC + coeff (LFO) * delay[ADDRESS + offset (LFO)]
 	PACC <- ACC
 
 Flags:
