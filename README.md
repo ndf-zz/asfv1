@@ -6,108 +6,56 @@ Copyright (C) 2017-2019 Nathan Fraser
 
 An alternate assembler for the Spin Semiconductor FV-1 DSP. This
 assembler aims to replicate some of the behaviour of the Spin FV-1
-assembler in standard Python, for developers who are unable or unwilling
-to use the Spin provided IDE.
-
+assembler in standard Python, for developers who are unable or
+unwilling to use the Spin provided IDE.
 
 ## Requirements
 
 - Python \>= 2.6
 
-
 ## Installation
 
-	$ pip3 install asfv1
-
-
-## Usage
-
-	$ asfv1 input.asm output.hex
-
-	$ asfv1 -b input.asm output.bin
-
-	$ asfv1 -h
-	usage: asfv1 [-h] [-q] [-v] [-c] [-n] [-s] [-p {0,1,2,3,4,5,6,7}] [-b]
-	             infile [outfile]
-	
-	Assemble a single FV-1 DSP program.
-	
-	positional arguments:
-	  infile                program source file
-	  outfile               assembled output file
-	
-	optional arguments:
-	  -h, --help            show this help message and exit
-	  -q, --quiet           suppress warnings
-	  -v, --version         print version
-	  -c, --clamp           clamp out of range values without error
-	  -n, --noskip          don't skip unused instruction space
-	  -s, --spinreals       read literals 2 and 1 as 2.0 and 1.0
-	  -p {0,1,2,3,4,5,6,7}  target program number (hex output)
-	  -b, --binary          write binary output instead of hex
-
+	$ pip install asfv1
 
 ## Description
 
-asfv1 assembles a Spin FV-1 DSP program into machine code, ready for
-uploading to the device. It is based on information in the FV-1
-datasheet and AN0001 "Basics of the LFOs in the FV-1", and is mostly 
-compatible with SpinASM (.spn) assembly. 
+asfv1 reads a single FV-1 DSP program then parses and assembles it.
+If no errors are encountered, machine code is written to an output
+file. If the output filename ends with 'hex', an Intel hex
+encoded output is produced, otherwise raw binary data is written.
 
-## Features
+	usage: asfv1 [-h] [-q] [-v] [-c] [-s] [-p {0,1,2,3,4,5,6,7}] [-b]
+             	infile outfile
 
-All instruction operands are treated as numeric expressions
-and can be entered directly as an unsigned integer or, where
-reasonable, a real-valued equivalent. For example, the following
-entries all generate the same code:
+ - `infile` : Filename for an ASCII, utf-8 or utf-16 encoded text file
+   containing FV-1 assembly (see [Assembly Program Syntax](#assembly-program-syntax) below)
 
-	or	-0.4335784912109375		; S_23 real value
-	or	-0x377f80&0xffffff		; signed 23bit int to unsigned 24 bit int
-	or	0xc88080			; unsigned 24bit int in hexadecimal
-	or	13140096			; unsigned 24bit int in decimal
-	or	1<<23|2**22|1<<19|2**15|1<<7	; unsigned 24bit int by bitwise or
-	or	0b110010001000000010000000	; unsigned 24bit int in binary
-	or	int(-0.4335784912109375*2**23)&0xffffff ; S_23 to unsigned 24bit conversion
+ - `outfile` : Filename for assembled output. If filename ends with 'hex',
+   an Intel hex file is written.
 
-Integer values may be entered with a base prefix (0x, $, 0b, %) or
-a plain decimal number. Unlike SpinASM, entries -1, 1, -2 and 2 are
-always read as integer literals. To get the Spin-like behaviour
-in asfv1, use option -s (--spinreals).
+ - `-h`, `--help` : Show a help message and exit
 
-Operand expressions support arbitrary arithmetic and bitwise operators.
-By default, immediate values that would overflow available
-argument sizes will generate an error and abort assembly. Command
-line option -c (--clamp) will instead restrict the value, where
-possible, and issue a warning eg:
+ - `-q`, `--quiet` : Suppress warning messages 
 
-	sof	2.0,0.0
+ - `-v`, `--version` : Print program version and exit
 
-	warning: S1.14 arg clamped for SOF: 1.99993896484375 on line ...
-	
-Non-sensical but otherwise valid arguments are assembled
-without error eg:
+ - `-c`, `--clamp` : Clamp out of range instruction operand values without error.
+   A warning message is printed for each clamped operand.
 
-	skp	NEG|GEZ,target		; an impossible skip
+ - `-s`, `--spinreals` : Interpret integer literals `1` and `2` as 1.0 and 2.0
+   respectively. This option should be used with SpinASM assembly.
 
-Instruction cho rdal can accept explicit condition flags as with
-other cho instructions in order to access COS and RPTR2 eg:
+ - `-p {0,1,2,3,4,5,6,7}` : Nominate one of the eight available program
+   slots on an FV-1 eeprom as the target. When this option is used with
+   binary output, machine code is offset appropriately in the target
+   file, allowing for assembly into an existing binary bank file. When
+   Intel HEX output is requested, the output file will include a single
+   program and relevant offset information for the target program.
 
-	cho	rdal,SIN0,COS|REG	; read cosine lfo directly
+ - `-b`, `--binary` : Force output in binary format, even if `outfile`
+   ends with 'hex'.
 
-Raw data can be inserted into the program using a 'RAW'
-instruction. RAW takes a 32bit integer operand and places it in
-the output without change, eg:
-
-	raw	0xdeadbeef		; insert raw data
-
-By default the output is written to an intel hex file at offset
-0x0000 (program 0). To select an alternate offset, command line
-option -p can select a target program from 0 to 7. When output is
-set to binary with -b (--binary), the program number option is
-ignored.
-
-
-## Program Syntax
+## Assembly Program Syntax
 
 An FV-1 assembly program recognised by asfv1 closely resembles
 the SpinIDE (.spn) format. Input is an ASCII, utf-8 or utf-16 encoded
@@ -115,8 +63,7 @@ text file containing zero to 128 FV-1
 [instructions](#instructions) with optional
 [targets](#jump-targets), [labels](#label-assignment),
 [comments](#comments) and [assembly directives](#memory-allocation).
-Instruction mnemonics, targets and labels are
-matched case-insensitively and runs of whitespace characters
+All text is matched case-insensitively and runs of whitespace characters
 (newline, tab, space) are condensed.
 Each of the input instructions is assembled into a single 32 bit
 machine code. If less than 128 assembly instructions are input,
@@ -198,14 +145,14 @@ in-place so a label must be declared before it is used:
 		or	missing		; error
 	EQU	missing	123		; missing is used before definition
 
-	parse error: Undefined label 'missing' on line ...
+	parse error: Undefined label missing on line ...
 
 Re-defining an already assigned label is allowed, but will generate 
 a warning message:
 
 	EQU	POT0	POT1		; point POT0 to POT1
 
-	warning: Label 'POT0' re-defined on line ...
+	warning: Label POT0 re-defined on line ...
 
 Labels, mnemonics and operators are matched case insensitively:
 
@@ -242,7 +189,7 @@ or a parse error will be generated:
 
 	MEM	invalid	123.4556	; invalid memory definition
 
-	parse error: Memory 'INVALID' length 123.4556 not integer on line ...
+	Memory INVALID length 123.4556 not integer on line 42
 
 	MEM	third	32767//3	; valid due to integer divide
 	MEM	d0_13	int(0.13*32767)	; valid due to explicit type cast
@@ -264,7 +211,7 @@ need to be explicitly parenthesised if used with '^':
 
 		or	delay^0xffff	; parse error - delay label takes caret
 
-	parse error: Unexpected input INTEGER '0xffff' on line ...
+	parse error: Unexpected INTEGER 0xffff on line ...
 
 		or	(delay)^0xffff	; OK - parentheses enforce ordering
 		or	delay^^0xffff	; OK 
@@ -287,7 +234,7 @@ Use of an already defined LABEL for a target will result in a parse error:
 	EQU	error	-1
 	error:	or	0x800000
 
-	parse error: Label ERROR already assigned on line ...
+	parse error: Target ERROR already assigned on line ...
 
 Target labels are not assigned values until parsing is complete,
 so they can only be used as a destination for a
@@ -300,7 +247,7 @@ parse error:
 	target:	clr			; clear ACC
 		wrax	DACL,0.0	; output only positive
 
-	parse error: Unexpected input OPERATOR '+' on line ...
+	parse error: Unexpected OPERATOR + on line ...
 
 To achieve the desired if/else behaviour, use a second target:
 
@@ -448,7 +395,16 @@ of each of the FV-1 number formats.
 	S_15	16	32768	-1.0	0.999969482421875
 	S_23	24	8388608	-1.0	0.9999998807907104
 
-Note: Quantisation step size is 1/Refval
+For example, the following entries all generate the same
+code:
+
+		or	-0.4335784912109375		; S_23 real value
+		or	-0x377f80&0xffffff		; signed 23bit int to unsigned 24 bit int
+		or	0xc88080			; unsigned 24bit int in hexadecimal
+		or	13140096			; unsigned 24bit int in decimal
+		or	1<<23|2**22|1<<19|2**15|1<<7	; unsigned 24bit int by bitwise or
+		or	0b110010001000000010000000	; unsigned 24bit int in binary
+		or	int(-0.4335784912109375*2**23)&0xffffff	; S_23 to unsigned 24bit conversion
 
 ### Pre-defined Labels
 
@@ -504,7 +460,7 @@ warning message:
 	EQU	POT0	ADCL	; re-define POT0 to be 0x14
 		ldax	POT0	; load from ADCL (0x14)
 
-	warning: Label 'POT0' re-defined on line ...
+	warning: Label POT0 re-defined on line ...
 
 ## Instruction Reference
 
@@ -935,7 +891,7 @@ Notes:
 		start:	clr
 			skp	0,start		; try to skip backward
 
-		parse error: Target 'START' does not follow SKP on line ...
+		parse error: Target START does not follow SKP on line ...
 
  - the maximum possible skip offset is 63, an error will be generated if
    the named target is out of range:
@@ -944,14 +900,15 @@ Notes:
 			[>63 instructions]
 		target: clr
 	
-		parse error: Offset from SKP to 'TARGET' (0x44) too large on line ...
+		parse error: Offset from SKP to TARGET (0x40) too large on line ...
 
  - To force computation of an offset, wrap an expression in parentheses:
 
 		EQU	three	3
 			skp	0,three+3	; error - three is not a target
 
-		parse error: Unexpected input OPERATOR/'+' on line ...
+		parse error: Unexpected OPERATOR + on line ...
+		parse error: Undefined target THREE for SKP on line ...
 
 			skp	0,(three+3)	; ok, offset is evaluated as expression
 
