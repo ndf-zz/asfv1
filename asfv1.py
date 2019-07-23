@@ -847,7 +847,10 @@ class fv1parse(object):
                         mod = ''
                         if len(self.linebuf) > 0 and self.linebuf[0] in [
                                                '^','#']:
-                            mod = self.linebuf.pop(0)
+                            # is the label already defined as MEM?
+                            if stxt+self.linebuf[0] in self.symtbl:
+                                mod = self.linebuf.pop(0)
+                            # else the modifier is ignored
                         self.sym = {'type': 'NAME',
                                     'txt': lbl+mod,
                                     'stxt': stxt+mod,
