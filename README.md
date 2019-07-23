@@ -264,22 +264,22 @@ or more [operand expressions](#operand-expressions) separated by commas:
 
 Mnemonic | Operands | Description
 --- | --- | ---
-[rda](#rda-address-multiplier)	|	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] & accumulate
-[rmpa](#rmpa-multiplier)	|	MULTIPLER		| multiply delay[(*ADDR_PTR)] & accumulate
-[wra](#wra-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS] & multiply
-[wrap](#wrap-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS], multiply & add LR
-[rdax](#rdax-register-multiplier)	|	REGISTER,MULTIPLIER	| multiply (*REGISTER) & accumulate
-[rdfx](#rdfx-register-multiplier)	|	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply & add (*REGISTER)
+[rda](#rda-address-multiplier)	|	ADDRESS,MULTIPLIER	| multiply delay[ADDRESS] and accumulate
+[rmpa](#rmpa-multiplier)	|	MULTIPLER		| multiply delay[(*ADDR_PTR)] and accumulate
+[wra](#wra-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS] and multiply
+[wrap](#wrap-address-multiplier)	|	ADDRESS,MULTIPLIER	| write delay[ADDRESS], multiply and add LR
+[rdax](#rdax-register-multiplier)	|	REGISTER,MULTIPLIER	| multiply (*REGISTER) and accumulate
+[rdfx](#rdfx-register-multiplier)	|	REGISTER,MULTIPLIER	| subtract (*REGISTER), multiply and add (*REGISTER)
 [ldax](#ldax-register)	|	REGISTER		| load (*REGISTER)
-[wrax](#wrax-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) & multiply
-[wrhx](#wrhx-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) & highpass shelf
-[wrlx](#wrlx-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) & lowpass shelf
+[wrax](#wrax-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) and multiply
+[wrhx](#wrhx-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) and highpass shelf
+[wrlx](#wrlx-register-multiplier)	|	REGISTER,MULTIPLIER	| write (*REGISTER) and lowpass shelf
 [maxx](#maxx-register-multiplier)	|	REGISTER,MULTIPLIER	| load maximum of absolute values
 [absa](#absa)	|				| load absolute value of ACC
 [mulx](#mulx-register)	|	REGISTER		| multiply by (*REGISTER)
-[log](#log-multiplier-offset)	|	MULTIPLIER,OFFSET	| log2(ACC), multiply & offset
-[exp](#exp-multiplier-offset)	|	MULTIPLIER,OFFSET	| 2\*\*(ACC), multiply & offset
-[sof](#sof-multiplier-offset)	|	MULTIPLIER,OFFSET	| multiply & offset
+[log](#log-multiplier-offset)	|	MULTIPLIER,OFFSET	| log2(ACC), multiply and offset
+[exp](#exp-multiplier-offset)	|	MULTIPLIER,OFFSET	| 2\*\*(ACC), multiply and offset
+[sof](#sof-multiplier-offset)	|	MULTIPLIER,OFFSET	| multiply and offset
 [and](#and-value)	|	VALUE			| bitwise AND
 [clr](#clr)	|				| clear ACC
 [or](#or-value)	|	VALUE			| bitwise OR
@@ -308,7 +308,9 @@ python intepreter.
 
 Operator | Function | Note
 --- | --- | ---
-`\| ^ &`	|	bitwise or, xor, and	| valid for integers only
+`\|`	|	bitwise or	| valid for integers only
+`^`	|	bitwise xor	| valid for integers only
+`&`	|	bitwise and	| valid for integers only
 `<< >>` |	shift left, shift right	| valid for integers only
 `+ -`	|	add, subtract	|
 `* // /` |	multiply, divide	| `//` forces integer divide
