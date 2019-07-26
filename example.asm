@@ -1,7 +1,7 @@
 ; A complete, but useless FV-1 assembly program
 MEM     delay	int(32767*3/5)	; ~0.6 sec delay
-EQU     input   ADCL		; read input from ADCL
-EQU     output	DACL		; write output to DACL
+EQU     input   ADCL		; use ADCL for input
+EQU     output	DACL		; use DACL for output
 EQU     vol	REG0		; use REG0 for volume
 start:  skp	RUN,main	; skip to main after first sample
 	ldax	POT0		; read from POT0
