@@ -58,7 +58,8 @@ encoded output is produced, otherwise raw binary data is written.
 ## Assembly Program Syntax
 
 An FV-1 assembly program recognised by asfv1 closely resembles
-the SpinIDE (.spn) format. Input is an ASCII, utf-8 or utf-16 encoded
+the [SpinIDE](http://spinsemi.com/products.html) (.spn) format.
+Input is an ASCII, utf-8 or utf-16 encoded
 text file containing zero to 128 FV-1
 [instructions](#instructions) with optional
 [targets](#jump-targets), [labels](#label-assignment),
@@ -176,14 +177,6 @@ the start point and end point, and assigns three labels:
 	LABEL^	midpoint of delay segment
 	LABEL#	end of delay segment
 
-LABEL has the same requirements as for [EQU](#label-assignment), and
-the assigned LABELS can be used in any expression. Eg:
-
-	MEM	Del_A	375		; declare a 375 sample delay called 'DEL_A'
-		wra	DEL_A,0.0	; write to start of delay, DEL_A=0
-		rda	del_a^,0.5	; read 0.5*midpoint of delay, DEL_A^=187
-		rda	DeL_A#,0.5	; add to 0.5*end of delay, DEL_A#=375
-
 EXPRESSION must define an integer number of samples
 or a parse error will be generated:
 
@@ -193,6 +186,14 @@ or a parse error will be generated:
 
 	MEM	third	32767//3	; valid due to integer divide
 	MEM	d0_13	int(0.13*32767)	; valid due to explicit type cast
+
+LABEL has the same requirements as for [EQU](#label-assignment), and
+the assigned labels can be used in any expression. Eg:
+
+	MEM	Del_A	375		; declare a 375 sample delay called 'DEL_A'
+		wra	DEL_A,0.0	; write to start of delay, DEL_A=0
+		rda	del_a^,0.5	; read 0.5*midpoint of delay, DEL_A^=187
+		rda	DeL_A#,0.5	; add to 0.5*end of delay, DEL_A#=375
 
 The assembler keeps track of allocated memory, placing each new
 segment immediately after those previously defined. Each segment 
@@ -205,9 +206,9 @@ a parse error:
 
 	parse error: Delay exhausted: requested 255 exceeds 254 available on line ...
 
-The caret character '^' is also used as an operator in expressions for
-bitwise XOR, so expressions which reference a delay may
-need to be explicitly parenthesised if used with '^':
+The caret character '^' is also used in expressions as
+the bitwise XOR operator, so expressions which reference
+a delay may need to be explicitly parenthesised if used with '^':
 
 		or	delay^0xffff	; parse error - delay label takes caret
 
@@ -220,7 +221,7 @@ need to be explicitly parenthesised if used with '^':
 
 Jump targets label a particular address in the program output
 and can be placed between instructions anywhere in a source file.
-A jump target is a LABEL followed by a colon ':' character:
+A jump target is a text label followed by a colon ':' character:
 
 			skp	1,TARGET1	; skip offset is 3
 			skp	2,TARGET2	; skip offset is 2
@@ -229,15 +230,15 @@ A jump target is a LABEL followed by a colon ':' character:
 	TARGET2:			; target on its own line
 	tarGET3:	and	0x12	; all three targets point to this instruction
 
-Use of an already defined LABEL for a target will result in a parse error:
+Use of an already defined label for a target will result in a parse error:
 
 	EQU	error	-1
 	error:	or	0x800000
 
 	parse error: Target ERROR already assigned on line ...
 
-Target labels are not assigned values until parsing is complete,
-so they can only be used as a destination for a
+Target labels are not assigned values until parsing is complete
+and they can only be used as a destination for a
 [skip instruction](#skp-conditions-offset). For example, 
 the following attempt to offset from a target generates a
 parse error:
@@ -303,8 +304,8 @@ Operand expressions are any valid combination
 of labels, numbers, parentheses and the following
 operators, listed from highest to lowest precedence. Operators
 on the same line have the same precedence, and are evaluated
-left to right - except for '**' power which works as in the
-python intepreter.
+left to right - except for '**' (power) which works 
+[as in the python intepreter](https://docs.python.org/3/reference/expressions.html#the-power-operator).
 
 Operator | Function | Note
 --- | --- | ---
@@ -315,7 +316,7 @@ Operator | Function | Note
 `+ -`	|	add, subtract	|
 `* // /` |	multiply, divide	| `//` forces integer divide
 `+ - ~ int`	|	unary plus, minus, invert bits, integer cast	| `!` is an alias for `~`
-`**`	|	power	| 
+`**`	|	power	| Binds right: `-10**-2` = `-0.01`
 
 The following numeric entry formats are recognised:
 
