@@ -45,7 +45,7 @@ PROGLEN = 128
 DELAYSIZE = 32767
 MAXERR = 10	# abort assembly if too many errors found
 
-# Fixed point reals SN.D with one sign bit (S),
+# Fixed point reals SN_D with one sign bit (S),
 # N integer bits and D fractional bits:
 #
 #	REF_... reference value at +1.0: 2**D
@@ -407,10 +407,10 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M16:
                         arg = M16
-                    self.parsewarn('S1.14 arg clamped to {0:#x}'.format(arg)
+                    self.parsewarn('S1_14 arg clamped to {0:#x}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S1.14 arg {0:#x} out of range'.format(
+                    self.parseerror('S1_14 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
@@ -420,17 +420,17 @@ class fv1parse(object):
                         arg = MIN_S1_14
                     elif arg > MAX_S1_14:
                         arg = MAX_S1_14
-                    self.parsewarn('S1.14 arg clamped to {}'.format(arg)
+                    self.parsewarn('S1_14 arg clamped to {}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S1.14 arg {} out of range'.format(arg)
+                    self.parseerror('S1_14 arg {} out of range'.format(arg)
                                     + xtra)
                     arg = 0
             arg = int(round(arg * REF_S1_14))
         return arg
 
     def __s_10__(self, mnemonic=''):
-        """Fetch an 11 bit S.10 real argument."""
+        """Fetch an 11 bit S_10 real argument."""
         xtra = ''
         if mnemonic:
             xtra = ' for ' + mnemonic
@@ -442,10 +442,10 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M11:
                         arg = M11
-                    self.parsewarn('S.10 arg clamped to {0:#x}'.format(
+                    self.parsewarn('S_10 arg clamped to {0:#x}'.format(
                                    arg) + xtra)
                 else:
-                    self.parseerror('S.10 arg {0:#x} out of range'.format(
+                    self.parseerror('S_10 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
@@ -455,17 +455,17 @@ class fv1parse(object):
                         arg = MIN_S_10
                     elif arg > MAX_S_10:
                         arg = MAX_S_10
-                    self.parsewarn('S.10 arg clamped to {}'.format(arg)
+                    self.parsewarn('S_10 arg clamped to {}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S.10 arg {} out of range'.format(arg)
+                    self.parseerror('S_10 arg {} out of range'.format(arg)
                                     + xtra)
                     arg = 0
             arg = int(round(arg * REF_S_10))
         return arg
 
     def __s_15__(self, mnemonic=''):
-        """Fetch a 16 bit S.15 real argument."""
+        """Fetch a 16 bit S_15 real argument."""
         xtra = ''
         if mnemonic:
             xtra = ' for ' + mnemonic
@@ -477,10 +477,10 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M16:
                         arg = M16
-                    self.parsewarn('S.15 arg clamped to {0:#x}'.format(
+                    self.parsewarn('S_15 arg clamped to {0:#x}'.format(
                                    arg) + xtra)
                 else:
-                    self.parseerror('S.15 arg {0:#x} out of range'.format(
+                    self.parseerror('S_15 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
@@ -490,10 +490,10 @@ class fv1parse(object):
                         arg = MIN_S_15
                     elif arg > MAX_S_15:
                         arg = MAX_S_15
-                    self.parsewarn('S.15 arg clamped to {}'.format(arg)
+                    self.parsewarn('S_15 arg clamped to {}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S.15 arg {} out of range'.format(arg)
+                    self.parseerror('S_15 arg {} out of range'.format(arg)
                                     + xtra)
                     arg = 0
             arg = int(round(arg * REF_S_15))
@@ -512,19 +512,19 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M32:
                         arg = M32
-                    self.parsewarn('U.32 arg clamped to {0:#x}'.format(arg)
+                    self.parsewarn('U_32 arg clamped to {0:#x}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('U.32 arg {0:#x} out of range'.format(
+                    self.parseerror('U_32 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
-            self.parseerror('Invalid U.32 arg {}'.format(arg) + xtra)
+            self.parseerror('Invalid U_32 arg {}'.format(arg) + xtra)
             arg = 0
         return arg
 
     def __s_23__(self, mnemonic=''):
-        """Fetch a 24 bit S.23 real or mask argument."""
+        """Fetch a 24 bit S_23 real or mask argument."""
         xtra = ''
         if mnemonic:
             xtra = ' for ' + mnemonic
@@ -536,10 +536,10 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M24:
                         arg = M24
-                    self.parsewarn('S.23 arg clamped to {0:#x}'.format(
+                    self.parsewarn('S_23 arg clamped to {0:#x}'.format(
                                    arg) + xtra)
                 else:
-                    self.parseerror('S.23 arg {0:#x} out of range'.format(
+                    self.parseerror('S_23 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
@@ -549,10 +549,10 @@ class fv1parse(object):
                         arg = MIN_S_23
                     elif arg > MAX_S_23:
                         arg = MAX_S_23
-                    self.parsewarn('S.23 arg clamped to {}'.format(arg)
+                    self.parsewarn('S_23 arg clamped to {}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S.23 arg {} out of range'.format(arg)
+                    self.parseerror('S_23 arg {} out of range'.format(arg)
                                     + xtra)
                     arg = 0
             arg = int(round(arg * REF_S_23))
@@ -571,10 +571,10 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M11:
                         arg = M11
-                    self.parsewarn('S1.9 arg clamped to {0:#x}'.format(
+                    self.parsewarn('S1_9 arg clamped to {0:#x}'.format(
                                    arg) + xtra)
                 else:
-                    self.parseerror('S1.9 arg {0:#x} out of range'.format(
+                    self.parseerror('S1_9 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
@@ -584,17 +584,17 @@ class fv1parse(object):
                         arg = MIN_S1_9
                     elif arg > MAX_S1_9:
                         arg = MAX_S1_9
-                    self.parsewarn('S1.9 arg clamped to {}'.format(arg)
+                    self.parsewarn('S1_9 arg clamped to {}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S1.9 arg {} out of range'.format(arg)
+                    self.parseerror('S1_9 arg {} out of range'.format(arg)
                                     + xtra)
                     arg = 0
             arg = int(round(arg * REF_S1_9))
         return arg
 
     def __s4_6__(self, mnemonic=''):
-        """Fetch an 11 bit S4.6 argument."""
+        """Fetch an 11 bit S4_6 argument."""
         xtra = ''
         if mnemonic:
             xtra = ' for ' + mnemonic
@@ -606,10 +606,10 @@ class fv1parse(object):
                         arg = 0
                     elif arg > M11:
                         arg = M11
-                    self.parsewarn('S4.6 arg clamped to {0:#x}'.format(
+                    self.parsewarn('S4_6 arg clamped to {0:#x}'.format(
                                    arg) + xtra)
                 else:
-                    self.parseerror('S4.6 arg {0:#x} out of range'.format(
+                    self.parseerror('S4_6 arg {0:#x} out of range'.format(
                                     arg) + xtra)
                     arg = 0
         else:
@@ -619,10 +619,10 @@ class fv1parse(object):
                         arg = MIN_S4_6
                     elif arg > MAX_S4_6:
                         arg = MAX_S4_6
-                    self.parsewarn('S4.6 arg clamped to {}'.format(arg)
+                    self.parsewarn('S4_6 arg clamped to {}'.format(arg)
                                    + xtra)
                 else:
-                    self.parseerror('S4.6 arg {} out of range'.format(arg)
+                    self.parseerror('S4_6 arg {} out of range'.format(arg)
                                     + xtra)
                     arg = 0
             arg = int(round(arg * REF_S4_6))
@@ -719,6 +719,20 @@ class fv1parse(object):
 
     def __next__(self):
         """Fetch next symbol."""
+        # Scanner uses shlex to break up the input, then reassembles
+        # tokens into one of:
+        #
+        #  EOF : end of input marker
+        #  MNEMONIC : instruction mnemonic text
+        #  ASSEMBLER : assembler directive 'EQU' or 'MEM'
+        #  OPERATOR : expression operator | ^ & << >> + - * // / ~ + - **
+        #  INTEGER : integer numeric literal
+        #  FLOAT : real numeric literal
+        #  TARGET : target address in assembled program
+        #  LABEL : text label
+        #  ARGSEP : operand delimiting character ,
+        #
+        # comments are stripped by shlex.
         self.sym = None
         self.prevline = self.sline	# line of last fetched symbol
         while self.sym is None:
@@ -730,19 +744,19 @@ class fv1parse(object):
                     self.linebuf = [t for t in llex]
                 else:
                     self.sym = {'type': 'EOF', 'txt':None,
-                                'stxt':None, 'val': 0x00}
+                                'stxt':None, 'val':None}
             if len(self.linebuf) > 0:
                 stxt = self.linebuf[0].upper()
                 if stxt in op_tbl:	# MNEMONIC
                     self.sym = {'type': 'MNEMONIC',
                                 'txt': self.linebuf.pop(0),
                                 'stxt': stxt,
-                                'val': 0x0}
+                                'val': None}
                 elif stxt in ['EQU', 'MEM']:
                     self.sym = {'type': 'ASSEMBLER',
                                 'txt': self.linebuf.pop(0),
                                 'stxt': stxt,
-                                'val': 0x0}
+                                'val': None}
                 elif stxt in ['<','>','*','/']:
                     optxt = self.linebuf.pop(0)
                     if len(self.linebuf) > 0:
@@ -754,12 +768,12 @@ class fv1parse(object):
                     self.sym = {'type': 'OPERATOR',
                                 'txt': optxt,
                                 'stxt': optxt,
-                                'val': 0x0}
+                                'val': None}
                 elif stxt in ['|','^','&','+','-','~','!','(',')','INT']:
                     self.sym = {'type': 'OPERATOR',
                                 'txt': self.linebuf.pop(0),
                                 'stxt': stxt,
-                                'val': 0x0}
+                                'val': None}
                 elif stxt[0] in ['%', '$']:
                     # SpinASM style integers
                     pref = self.linebuf.pop(0)
@@ -835,10 +849,10 @@ class fv1parse(object):
                                     'stxt': intpart,
                                     'val': ival}
 
-                elif stxt[0].isalpha(): # NAME or LABEL
+                elif stxt[0].isalpha(): # TARGET or LABEL
                     lbl = self.linebuf.pop(0)
                     if len(self.linebuf) > 0 and self.linebuf[0] == ':':
-                        self.sym = {'type': 'LABEL',
+                        self.sym = {'type': 'TARGET',
                                     'txt': lbl,
                                     'stxt': stxt,
                                     'val': None}
@@ -851,15 +865,15 @@ class fv1parse(object):
                             if stxt+self.linebuf[0] in self.symtbl:
                                 mod = self.linebuf.pop(0)
                             # else the modifier is ignored
-                        self.sym = {'type': 'NAME',
+                        self.sym = {'type': 'LABEL',
                                     'txt': lbl+mod,
                                     'stxt': stxt+mod,
-                                    'val': 0x0}
+                                    'val': None}
                 elif stxt == ',':	# ARGSEP
                     self.sym = {'type': 'ARGSEP',
                                 'txt': self.linebuf.pop(0),
                                 'stxt': stxt,
-                                'val': 0x0}
+                                'val': None}
                 elif self.linebuf[0] == '\ufeff':
                     self.linebuf.pop(0) # ignore BOM
                 else:
@@ -867,7 +881,7 @@ class fv1parse(object):
                                    self.linebuf.pop(0)))
 
     def scanerror(self, msg):
-        """Emit scan error and abort assembly."""
+        """Emit scan error."""
         self.doerror('scan error: ' + msg + ' on line {}'.format(self.sline))
         self.ecount += 1
         if self.ecount > MAXERR:
@@ -881,7 +895,7 @@ class fv1parse(object):
         self.dowarn('warning: {} on line {}'.format(msg, line))
 
     def parseerror(self, msg, line=None):
-        """Emit parse error and abort assembly."""
+        """Emit parse error."""
         if line is None:
             line = self.prevline
         self.doerror('parse error: {} on line {}'.format(msg, line))
@@ -910,7 +924,6 @@ class fv1parse(object):
         if self.icnt >= PROGLEN:
             self.parseerror('Max program exceeded by {}'.format(mnemonic))
         if mnemonic in ['AND', 'OR', 'XOR', ]:
-            # accumulator commands, accept one 24 bit argument
             mask = self.__s_23__(mnemonic)
             self.pl.append({'cmd':[mnemonic, mask],'addr':self.icnt})
             self.icnt += 1
@@ -923,7 +936,7 @@ class fv1parse(object):
         elif mnemonic in ['LOG', ]:
             mult = self.__s1_14__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
-            oft = self.__s4_6__(mnemonic)
+            oft = self.__s4_6__(mnemonic) # ACC is S4_6 after log
             self.pl.append({'cmd':[mnemonic, mult, oft], 'addr':self.icnt})
             self.icnt += 1
         elif mnemonic in ['RDAX', 'WRAX', 'MAXX', 'RDFX', 'WRLX', 'WRHX',]:
@@ -942,9 +955,9 @@ class fv1parse(object):
             target = None
             offset = 0x00
             sourceline = self.sline
-            if self.sym['type'] == 'NAME':
+            if self.sym['type'] in ['LABEL','TARGET']:
                 target = self.sym['stxt']
-                self.__accept__('NAME')
+                self.__next__()
             else:
                 offset = self.__offset__(mnemonic)
             self.pl.append({'cmd':['SKP', condition, offset],
@@ -1067,7 +1080,7 @@ class fv1parse(object):
 
     def __expression__(self):
         """Parse an operand expression."""
-        if self.sym['type'] in ['ASSEMBLER','EOF','MNEMONIC','LABEL']:
+        if self.sym['type'] in ['ASSEMBLER','EOF','MNEMONIC','TARGET']:
             self.parseerror('Unexpected {}'.format(self.sym['type']),
                             self.sline)
             return 0
@@ -1190,7 +1203,7 @@ class fv1parse(object):
                 self.parseerror("Expected ')' but saw {} {}".format(
                               self.sym['type'], self.sym['txt']),
                               self.sline)
-        elif self.sym['type'] == 'NAME':
+        elif self.sym['type'] == 'LABEL':
             stxt = self.sym['stxt']
             if stxt in self.symtbl:
                 ret = self.__deref__(stxt)
@@ -1207,14 +1220,14 @@ class fv1parse(object):
             self.parseerror('Unexpected {} {} in expression'.format(
                               self.sym['type'], self.sym['txt']),
                               self.sline)
-            if self.sym['type'] not in ['ARGSEP', 'LABEL', 'MNEMONIC',
+            if self.sym['type'] not in ['ARGSEP', 'TARGET', 'MNEMONIC',
                                         'EOF', 'ASSEMBLER']:
                 self.__next__()	# skip the problem
             ret = 0
         return ret
 
-    def __label__(self):
-        """Parse a label assignment."""
+    def __target__(self):
+        """Parse a target assignment."""
         lbl = self.sym['stxt']
         oft = self.icnt
         if lbl in self.jmptbl and oft != self.jmptbl[lbl]:
@@ -1231,7 +1244,7 @@ class fv1parse(object):
         typ = None
         arg1 = None
         arg2 = None
-        if self.sym['type'] == 'NAME':
+        if self.sym['type'] == 'LABEL':
             arg1 = self.sym['stxt']
             self.__next__()
         if self.sym['type'] == 'ASSEMBLER':
@@ -1244,11 +1257,11 @@ class fv1parse(object):
             return
 
         if arg1 is None:
-            if self.sym['type'] == 'NAME':
+            if self.sym['type'] == 'LABEL':
                 arg1 = self.sym['stxt']
                 self.__next__()
             else:
-                self.parseerror('Expected NAME but saw {} {}'.format(
+                self.parseerror('Expected LABEL but saw {} {}'.format(
                              self.sym['type'], self.sym['txt']))
                 return
 
@@ -1300,18 +1313,18 @@ class fv1parse(object):
         """Parse input."""
         self.__next__()
         while self.sym['type'] != 'EOF':
-            if self.sym['type'] == 'LABEL':
-                self.__label__()
+            if self.sym['type'] == 'TARGET':
+                self.__target__()
             elif self.sym['type'] == 'MNEMONIC':
                 self.__instruction__()
-            elif self.sym['type'] == 'NAME' or self.sym['type'] == 'ASSEMBLER':
+            elif self.sym['type'] == 'LABEL' or self.sym['type'] == 'ASSEMBLER':
                 self.__assembler__()
             else:
                 self.parseerror('Unexpected {} {}'.format(
                                   self.sym['type'], self.sym['txt']),
                                   self.sline)
                 while self.sym['type'] not in ['EOF', 'MNEMONIC',
-                                           'ASSEMBLER', 'LABEL','NAME']:
+                                           'ASSEMBLER', 'TARGET','LABEL']:
                     self.__next__()    # skip to next checkpoint
         # patch skip targets if required
         for i in self.pl:
