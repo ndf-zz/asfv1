@@ -115,8 +115,7 @@ Examples:
 	addr02: cho			; op=0x14 interpolated memory access
 			rdal,		; type=0x3 read offset(LFO) into ACC
 			SIN1,		; lfo=0x1 use SIN1 LFO
-			COS|REG|COMPA	; flags=0xb register LFO and use -COS output
-					; Machine code: 0xcb200014
+			COS|REG		; flags=0xb register LFO and use COS output
 
 ### Label Assignment
 
@@ -1086,13 +1085,21 @@ according to optional FLAGS. If FLAGS are omitted, a default
 value of REG (0x2) is assembled.
 
 	LFO:		2bit integer (SIN0, SIN1, RMP0 or RMP1)
-	FLAGS:		6bit integer flags (see cho rda)
+	FLAGS:		6bit integer flags (see cho rda and notes)
 	Assembly:	0x3<<30 | FLAGS<<24 | LFO<<21 | 0x10100
 
 Action:
 
-	ACC <- offset (LFO)
+	ACC <- ACC + offset (LFO)
 	PACC <- ACC
+
+Notes:
+
+ - REG flag must be set in order to get a meaningful value in ACC
+   value (this is the default if FLAGS are omitted)
+
+ - Only COS flag has any affect on the instruction, and only when used with
+   SIN LFO. 
 
 Example:
 
