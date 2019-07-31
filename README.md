@@ -242,7 +242,7 @@ and they can only be used as a destination for a
 the following attempt to offset from a target generates a
 parse error:
 
-		skp	NEG,target	; skip to target if negaive
+		skp	NEG,target	; skip to target if negative
 		skp	0,target+1	; error - invalid expression
 	target:	clr			; clear ACC
 		wrax	DACL,0.0	; output only positive
@@ -251,7 +251,7 @@ parse error:
 
 To achieve the desired if/else behaviour, use a second target:
 
-		skp	NEG,ifpart	; skip to target if negaive
+		skp	NEG,ifpart	; skip to target if negative
 		skp	0,elsept	; else, skip ahead
 	ifpart:	clr			; clear ACC
 	elsept:	wrax	DACL,0.0	; output >= 0
@@ -286,6 +286,7 @@ Mnemonic | Operands | Description
 [xor](#xor-value)	|	VALUE			| bitwise XOR
 [not](#not)	|				| bitwise negation
 [skp](#skp-conditions-offset)	|	CONDITIONS,OFFSET	| skip offset instructions if all conditions met
+[jmp](#jmp-offset)	|	OFFSET	| jump offset instructions
 [nop](#nop)	|				| no operation
 [wlds](#wlds-lfo-frequency-amplitude)	|	LFO,FREQUENCY,AMPLITUDE	| ajdust SIN LFO
 [wldr](#wldr-lfo-frequency-amplitude)	|	LFO,FREQUENCY,AMPLITUDE	| adjust RMP LFO
@@ -926,6 +927,23 @@ Example:
 		ldax	REG0		; load a previous value
 		skp	ZRC|NEG,target	; skip to target on positive zero crossing
 		skp	RUN,1		; skip 1 instruction except on first run
+
+### jmp OFFSET
+
+Perform an unconditional skip over OFFSET instructions.
+
+	OFFSET:		Unsigned 6bit integer or target label
+	Assembly:	OFFSET<<21 | 0b10001
+
+Notes:
+
+ - jmp is assembled as skp 0,OFFSET. See skp above for details on 
+   specifying jmp targets.
+
+Example:	
+
+		jmp	target		; unconditionally skip to target
+		jmp	3		; always skip over 3 instructions
 
 ### nop
 
