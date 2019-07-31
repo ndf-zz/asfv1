@@ -148,6 +148,7 @@ op_tbl = {
         'XOR':  [0b10000, (M24,8)],
         'NOT':	[0b10000, (M24,8)], # pseudo: XOR $ffffff
         'SKP':  [0b10001, (M5,27),(M6,21)],	# note 1
+        'JMP':  [0b10001, (M5,27),(M6,21)],	# pseudo skp 0,...
         'NOP':	[0b10001, ], # pseudo: SKP 0,0 note 2
         'WLDS': [0b10010, (M1,29),(M9,20),(M15,5)],
         'WLDR': [0b10010, (M2,29),(M16,13),(M2,5)], # CHECK
@@ -949,9 +950,11 @@ class fv1parse(object):
             reg = self.__register__(mnemonic)
             self.pl.append({'cmd':[mnemonic, reg], 'addr':self.icnt})
             self.icnt += 1
-        elif mnemonic == 'SKP':
-            condition = self.__condition__(mnemonic)
-            self.__accept__('ARGSEP',opmsg)
+        elif mnemonic in ['SKP','JMP']:
+            condition = 0
+            if mnemonic == 'SKP':
+                condition = self.__condition__(mnemonic)
+                self.__accept__('ARGSEP',opmsg)
             target = None
             offset = 0x00
             sourceline = self.sline
