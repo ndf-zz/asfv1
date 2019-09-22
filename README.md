@@ -15,7 +15,39 @@ unwilling to use the Spin provided IDE.
 
 ## Installation
 
+asfv is available to install directly from the
+Python Package Index using the command
+[pip](https://pip.pypa.io/en/stable/).
+If your system includes pip, run the following
+command to install:
+
+	$ pip3 install asfv1
+
+or
+
 	$ pip install asfv1
+
+If your system does not include pip by default, check the
+[installing pip with packaging managers](https://packaging.python.org/guides/installing-using-linux-tools/#installing-pip-setuptools-wheel-with-linux-package-managers)
+documentation at
+[packaging.python.org](https://packaging.python.org/).
+
+If you would prefer to not use pip, asfv1 can be installed using
+the included setup.py script. Fetch a copy of the source package
+unpack it and then run the installer as root:
+
+	$ sudo python3 ./setup.py install
+
+Alternatively, the main source file can be run directly with a python
+interpreter without the need to install any files:
+
+	$ python3 ./asfv1.py
+
+For more information about installing python packages, please
+refer to the
+[Python package installation documentation](https://packaging.python.org/tutorials/installing-packages/)
+or the 
+[Python Package Index](https://pypi.org/).
 
 ## Description
 
