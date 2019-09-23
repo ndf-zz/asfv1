@@ -15,11 +15,11 @@ unwilling to use the Spin provided IDE.
 
 ## Installation
 
-asfv can be installed from the
+Make sure your system has a python interpreter
+(preferably python3), then install from the
 [Python Package Index](https://pypi.org/)
-using the command
-[pip](https://pip.pypa.io/en/stable/).
-If your system includes pip, run the following
+using the
+[pip](https://pip.pypa.io/en/stable/)
 command:
 
 	$ pip3 install asfv1
@@ -28,27 +28,9 @@ or
 
 	$ pip install asfv1
 
-If your system does not include pip, check the
-[installing pip with packaging managers](https://packaging.python.org/guides/installing-using-linux-tools/#installing-pip-setuptools-wheel-with-linux-package-managers)
-documentation at
-[packaging.python.org](https://packaging.python.org/).
-
-If you would prefer to not use pip, asfv1 can be installed using
-the included setup.py script. Fetch a copy of the latest source package,
-unpack it and then run the installer as root:
-
-	$ sudo python3 ./setup.py install
-
-Alternatively, the main source file can be run directly with a python
-interpreter without the need to install any files:
-
-	$ python3 ./asfv1.py infile.asm outfile.bin
-
-For more information about installing python packages,
-please refer to the
-[Python package installation documentation](https://packaging.python.org/tutorials/installing-packages/)
-on the 
-[Python Package Index](https://pypi.org/).
+For system-specific installation instructions see
+[System Specific Installation](#system-specific-installation)
+below.
 
 ## Description
 
@@ -1171,6 +1153,72 @@ Example:
 		raw	0x4000000f	; manually assemble "or 0.5"
 		skp	0,1		; skip over the next instruction
 		raw	0xa899fbda	; place a signature in the binary
+
+## System Specific Installation
+
+The preferred method for installation is to use your system's
+packaged pip3 command to fetch and install asfv1 from
+[PyPi](https://pypi.org/) and set it up to work with a python3
+interpreter.
+
+### Linux with apt (Debian, Ubuntu)
+
+	$ sudo apt install python3-venv python3-pip
+	$ pip3 install asfv1
+
+### Linux with yum (Fedora 21)
+
+	$ sudo yum install python3 python3-wheel
+	$ pip3 install asfv1
+
+### Linux with dnf (Fedora 22)
+
+	$ sudo dnf install python3 python3-wheel
+	$ pip3 install asfv1
+
+### Arch Linux
+
+	$ sudo pacman -S python-pip
+	$ pip install asfv1
+
+### MacOS
+
+Download a copy of the &quot;Latest Python 3 Release&quot;
+for Mac OS from
+[python.org](https://www.python.org/downloads/mac-osx/).
+Install the package, then open a terminal and run:
+
+	$ pip3 install asfv1
+
+### Windows
+
+Download a copy of the &quot;Latest Python 3 Release&quot;
+for Windows from
+[python.org](https://www.python.org/downloads/windows/).
+Install the package, then open a command prompt and run:
+
+	C:\> pip3 install asfv1
+
+For more detailed information, please refer to the 
+[Python package installation documentation](https://packaging.python.org/tutorials/installing-packages/)
+and
+[installing pip with packaging managers](https://packaging.python.org/guides/installing-using-linux-tools/#installing-pip-setuptools-wheel-with-linux-package-managers)
+at
+[packaging.python.org](https://packaging.python.org/).
+
+### Install from Source
+
+If you would prefer to not use pip, or if your system is provided with
+and older version of Python (eg MacOS), asfv1 can be installed using
+the included setup.py script. Fetch a copy of the latest source package,
+unpack it and then run the installer as root:
+
+	$ sudo python ./setup.py install
+
+Alternatively, the main source file can be run directly with a python
+interpreter without the need to install any files:
+
+	$ python ./asfv1.py infile.asm outfile.bin
 
 ## Links
 
