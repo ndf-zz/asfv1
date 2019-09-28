@@ -40,7 +40,7 @@ import shlex
 import struct
 
 # Constants
-VERSION = '1.2.5'
+VERSION = '1.2.6'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAXERR = 10	# abort assembly if too many errors found
@@ -928,16 +928,10 @@ class fv1parse(object):
             mask = self.__s_23__(mnemonic)
             self.pl.append({'cmd':[mnemonic, mask],'addr':self.icnt})
             self.icnt += 1
-        elif mnemonic in ['SOF', 'EXP', ]:
+        elif mnemonic in ['SOF', 'EXP', 'LOG', ]:
             mult = self.__s1_14__(mnemonic)
             self.__accept__('ARGSEP',opmsg)
             oft = self.__s_10__(mnemonic)
-            self.pl.append({'cmd':[mnemonic, mult, oft], 'addr':self.icnt})
-            self.icnt += 1
-        elif mnemonic in ['LOG', ]:
-            mult = self.__s1_14__(mnemonic)
-            self.__accept__('ARGSEP',opmsg)
-            oft = self.__s4_6__(mnemonic) # ACC is S4_6 after log
             self.pl.append({'cmd':[mnemonic, mult, oft], 'addr':self.icnt})
             self.icnt += 1
         elif mnemonic in ['RDAX', 'WRAX', 'MAXX', 'RDFX', 'WRLX', 'WRHX',]:

@@ -745,13 +745,18 @@ multiply and then add offset. Input ACC is S_23,
 result ACC is S4_19.
 
 	MULTIPLIER:	Real S1_14 or Unsigned 16bit integer
-	OFFSET:		Real S4_6 or Unsigned 11bit integer
+	OFFSET:		Real S_10 or Unsigned 11bit integer
 	Assembly:	MULTIPLIER<<16 | OFFSET<<5 | 0b01011
 
 Action:
 
 	ACC <- OFFSET + MULTIPLIER * log2 (abs (ACC))
 	PACC <- ACC
+
+Notes:
+
+   - OFFSET is input as a real S_10 value, however it represents
+     an S4_6 offset of the accumulator, which is in S4_19 after the log.
 
 Example:	
 
