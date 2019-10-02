@@ -40,7 +40,7 @@ import shlex
 import struct
 
 # Constants
-VERSION = '1.2.6'
+VERSION = '1.2.7'
 PROGLEN = 128
 DELAYSIZE = 32767
 MAXERR = 10	# abort assembly if too many errors found
@@ -349,7 +349,7 @@ class fv1parse(object):
             xtra = ' for ' + mnemonic
         cond = self.__expression__()
         if int(cond) == cond:
-            cont = int(cond)
+            cond = int(cond)
             if cond < 0 or cond > M5:
                 self.parseerror('Condition {0:#x} out of range'.format(
                                 cond) + xtra)
@@ -465,12 +465,14 @@ class fv1parse(object):
             arg = int(round(arg * REF_S_10))
         return arg
 
-    def __s_15__(self, mnemonic=''):
-        """Fetch a 16 bit S_15 real argument."""
+    def __s_15a__(self, mnemonic=''):
+        """Fetch a 16 bit S_15 real address argument."""
         xtra = ''
         if mnemonic:
             xtra = ' for ' + mnemonic
         arg = self.__expression__()
+        if self.spinreals and arg == int(arg):
+            arg = int(arg)
         if isinstance(arg, int):
             if arg < 0 or arg > M16:
                 if self.doclamp:
@@ -1000,17 +1002,16 @@ class fv1parse(object):
                 self.__accept__('ARGSEP',opmsg)
                 flags = self.__choflags__(lfo)
                 self.__accept__('ARGSEP',opmsg)
-                arg = self.__s_15__(mnemonic) # allow float memory addr
+                arg = self.__s_15a__(mnemonic)
             elif chotype == 0x02:	# cho sof,lfo,flags,offset
                 self.__accept__('ARGSEP',opmsg)
                 flags = self.__choflags__(lfo)
                 self.__accept__('ARGSEP',opmsg)
-                arg = self.__s_15__(mnemonic)
+                arg = self.__s_15a__(mnemonic)
             elif chotype == 0x3:	# cho rdal,lfo[,flags]
                 if self.sym['type'] == 'ARGSEP':
                     self.__accept__('ARGSEP')
                     flags = self.__choflags__(lfo)
-
             self.pl.append({'cmd':['CHO', chotype, lfo, flags, arg],
                             'addr':self.icnt})
             self.icnt += 1
@@ -1077,6 +1078,12 @@ class fv1parse(object):
 
     def __expression__(self):
         """Parse an operand expression."""
+        if self.spinreals and self.sym['type'] in ['ASSEMBLER','ARGSEP',
+                                           'MNEMONIC','TARGET','EOF']:
+            # assume the operand was omitted and replace with zero
+            # but don't consume the token - hack for SpinASM compatibility
+            self.parsewarn('Missing argument replaced with 0')
+            return 0
         if self.sym['type'] in ['ASSEMBLER','EOF','MNEMONIC','TARGET']:
             self.parseerror('Unexpected {}'.format(self.sym['type']),
                             self.sline)
@@ -1372,7 +1379,7 @@ def main():
                         help='clamp out of range values without error')
     parser.add_argument('-s', '--spinreals',
                         action='store_true',
-                        help="read literals 2 and 1 as 2.0 and 1.0")
+                        help="read literals 2,1 as float (SpinASM compatibility)")
     parser.add_argument('-p',
                         help='target program number',
                         type=int, choices=range(0,8))
