@@ -2,7 +2,7 @@
 
 Alternate Assembler for Spin Semi FV-1
 
-Copyright (C) 2017-2019 Nathan Fraser
+Copyright (C) 2017-2021 Nathan Fraser
 
 An alternate assembler for the Spin Semiconductor FV-1 DSP. This
 assembler aims to replicate some of the behaviour of the Spin FV-1
