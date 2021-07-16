@@ -21,7 +21,7 @@ setuptools.setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
 	'Environment :: Console',
-        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Topic :: Software Development :: Assemblers',
     ],
