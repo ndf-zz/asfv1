@@ -220,6 +220,8 @@ class fv1parse(object):
                 'SIN1':		0x01,
                 'RMP0':		0x02,
                 'RMP1':		0x03,
+                'COS0':   0x08,
+                'COS1':   0x09,
                 'RDA':		0x00,
                 'SOF':		0x02,
                 'RDAL':		0x03,
@@ -376,33 +378,19 @@ class fv1parse(object):
         if mnemonic:
             xtra = ' for ' + mnemonic
         arg = self.__expression__()
-        if isinstance(arg, int):
-            if arg < 0 or arg > M16:
-                if self.doclamp:
-                    if arg < 0:
-                        arg = 0
-                    elif arg > M16:
-                        arg = M16
-                    self.parsewarn('S1_14 arg clamped to {0:#x}'.format(arg)
-                                   + xtra)
-                else:
-                    self.parseerror('S1_14 arg {0:#x} out of range'.format(
-                                    arg) + xtra)
-                    arg = 0
-        else:
-            if arg < MIN_S1_14 or arg > MAX_S1_14:
-                if self.doclamp:
-                    if arg < MIN_S1_14:
-                        arg = MIN_S1_14
-                    elif arg > MAX_S1_14:
-                        arg = MAX_S1_14
-                    self.parsewarn('S1_14 arg clamped to {}'.format(arg)
-                                   + xtra)
-                else:
-                    self.parseerror('S1_14 arg {} out of range'.format(arg)
-                                    + xtra)
-                    arg = 0
-            arg = int(round(arg * REF_S1_14))
+        if arg < MIN_S1_14 or arg > MAX_S1_14:
+            if self.doclamp:
+                if arg < MIN_S1_14:
+                    arg = MIN_S1_14
+                elif arg > MAX_S1_14:
+                    arg = MAX_S1_14
+                self.parsewarn('S1_14 arg clamped to {}'.format(arg)
+                               + xtra)
+            else:
+                self.parseerror('S1_14 arg {} out of range'.format(arg)
+                                + xtra)
+                arg = 0
+        arg = int(round(arg * REF_S1_14))
         return arg
 
     def __s_10__(self, mnemonic=''):
@@ -619,7 +607,7 @@ class fv1parse(object):
         lfo = self.__expression__()
         if int(lfo) == lfo:
             lfo = int(lfo)
-            if lfo < 0 or lfo > 3:
+            if lfo < 0 not in [0, 1, 2, 3, 8, 9]:
                 self.parseerror('Invalid LFO {0:#x}'.format(lfo) + xtra)
                 lfo = 0
         else:
@@ -779,8 +767,11 @@ class fv1parse(object):
                                         'txt': pref,
                                         'stxt': pref,
                                         'val': 0}
-                elif stxt[0].isdigit(): # INTEGER or FLOAT
-                    intpart = self.linebuf.pop(0).lower()
+                elif stxt[0].isdigit() or stxt[0]=='.': # INTEGER or FLOAT
+                    if stxt[0] != '.':
+                        intpart = self.linebuf.pop(0).lower()
+                    else:
+                        intpart = "0"
                     ival = 0.0
                     if len(self.linebuf) > 0 and self.linebuf[0] == '.':
                         self.linebuf.pop(0)
@@ -802,7 +793,6 @@ class fv1parse(object):
                                         'stxt': intpart+'.'+frac,
                                         'val': ival}
                         else:
-                            self.scanerror('Invalid numeric literal')
                             self.sym = {'type': 'FLOAT',
                                         'txt': intpart+'.0',
                                         'stxt': intpart+'.0',
