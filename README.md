@@ -2,6 +2,9 @@
 
 Alternate Assembler for Spin Semi FV-1
 
+Archived: 2026-05-13
+Moved to: https://codeberg.org/ndf-zz/asfv1
+
 Copyright (C) 2017-2021 Nathan Fraser
 
 An alternate assembler for the Spin Semiconductor FV-1 DSP. This
